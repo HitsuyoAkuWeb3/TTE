@@ -1,0 +1,7 @@
+{
+  "name": "TetraTool Engine v2.0",
+  "description": "A Post-Neon Diagnostic Engine for identifying, validating, and installing a creator's unextractable Starting Tool. Based on the TetraTool Test v2.0 architecture.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
