@@ -79,36 +79,40 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
     }
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Calculate percentage position
+    const xPct = x / rect.width;
+    const yPct = y / rect.height;
+
+    // Determine Quadrant (Top-Left=Craft, Top-Right=Ritual, Bottom-Left=Sandbox, Bottom-Right=Mischief)
+    if (xPct < 0.5 && yPct < 0.5) setActiveZone(Quadrant.CRAFT);
+    else if (xPct >= 0.5 && yPct < 0.5) setActiveZone(Quadrant.RITUAL);
+    else if (xPct < 0.5 && yPct >= 0.5) setActiveZone(Quadrant.SANDBOX);
+    else if (xPct >= 0.5 && yPct >= 0.5) setActiveZone(Quadrant.MISCHIEF);
+  };
+
   return (
-    <div className="w-full h-[400px] bg-zinc-950 border border-zinc-800 relative group">
+    <div
+      className="w-full h-[400px] bg-zinc-950 border border-zinc-800 relative group"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setActiveZone(null)}
+    >
       {/* Axis Labels */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">INSTRUMENT (DISCIPLINE)</div>
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">TOY (DISCOVERY)</div>
       <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-mono text-zinc-500/50">TOOL (CONSTRUCTION)</div>
       <div className="absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-[10px] font-mono text-zinc-500/50">WEAPON (DISRUPTION)</div>
 
-      {/* Quadrant Hover Overlay */}
-      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 z-10">
-        <div
-          className="hover:bg-zinc-900/10 transition-colors"
-          onMouseEnter={() => setActiveZone(Quadrant.CRAFT)}
-          onMouseLeave={() => setActiveZone(null)}
-        />
-        <div
-          className="hover:bg-zinc-900/10 transition-colors"
-          onMouseEnter={() => setActiveZone(Quadrant.RITUAL)}
-          onMouseLeave={() => setActiveZone(null)}
-        />
-        <div
-          className="hover:bg-zinc-900/10 transition-colors"
-          onMouseEnter={() => setActiveZone(Quadrant.SANDBOX)}
-          onMouseLeave={() => setActiveZone(null)}
-        />
-        <div
-          className="hover:bg-zinc-900/10 transition-colors"
-          onMouseEnter={() => setActiveZone(Quadrant.MISCHIEF)}
-          onMouseLeave={() => setActiveZone(null)}
-        />
+      {/* Visual Feedback Layer (Pointer Events None) */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {activeZone === Quadrant.CRAFT && <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-zinc-900/10 transition-colors duration-300" />}
+        {activeZone === Quadrant.RITUAL && <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-zinc-900/10 transition-colors duration-300" />}
+        {activeZone === Quadrant.SANDBOX && <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-zinc-900/10 transition-colors duration-300" />}
+        {activeZone === Quadrant.MISCHIEF && <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-zinc-900/10 transition-colors duration-300" />}
       </div>
 
       {/* Info Card */}
@@ -132,6 +136,21 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
           <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
           <ReferenceLine x={0} stroke="#666" strokeDasharray="3 3" />
           <CustomBackground />
+          <Tooltip
+            cursor={{ strokeDasharray: '3 3' }}
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="bg-black border border-white p-2 font-mono text-xs z-30 relative">
+                    <p className="font-bold text-white">{data.verb}</p>
+                    <p className="text-zinc-400">{data.quadrant}</p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
           <Scatter name="Armory" data={items} fill="#fff">
             {items.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.quadrant === Quadrant.RITUAL ? '#ef4444' : '#fff'} />

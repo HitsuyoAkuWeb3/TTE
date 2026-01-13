@@ -118,7 +118,7 @@ export const ArmoryAuditPhase: React.FC<{
                     </form>
 
                     {/* Sovereign Primitives Menu */}
-                    <div className="bg-zinc-900/30 p-4 border border-zinc-800 h-[600px] overflow-y-auto relative">
+                    <div className="bg-zinc-900/30 p-4 border border-zinc-800 h-[850px] overflow-y-auto relative">
                         {/* Removed sticky from main title to cleaner flow with sub-headers */}
                         <h3 className="text-xs uppercase text-zinc-500 mb-4 font-mono pb-2 border-b border-zinc-800">
                             Sovereign Primitives (Quick Add)
@@ -160,15 +160,16 @@ export const ArmoryAuditPhase: React.FC<{
                     </div>
                 </div>
 
-                <div>
-                    <ArmoryMap items={items} />
-                    <div className="mt-6 p-4 border border-yellow-900/50 bg-yellow-900/10 text-yellow-200 text-sm font-mono mb-8">
-                        WARNING: Ensure you have items in the <span className="font-bold">RITUAL</span> or <span className="font-bold">CRAFT</span> quadrants.
-                        Pure Sandbox items cannot become infrastructure.
+                <div className="h-[850px] flex flex-col relative">
+                    <div className="flex-none">
+                        <ArmoryMap items={items} />
+                        <div className="mt-6 p-4 border border-yellow-900/50 bg-yellow-900/10 text-yellow-200 text-sm font-mono mb-4">
+                            WARNING: Ensure you have items in the <span className="font-bold">RITUAL</span> or <span className="font-bold">CRAFT</span> quadrants.
+                        </div>
                     </div>
 
-                    {/* List of Added Items - Moved Here */}
-                    <div className="space-y-4 pr-2 border-t border-zinc-800 pt-4">
+                    {/* Scrollable List */}
+                    <div className="space-y-4 pr-2 border-t border-zinc-800 pt-4 flex-1 overflow-y-auto min-h-0">
                         <h3 className="text-xs uppercase text-zinc-500 font-mono">My Armory ({items.length})</h3>
                         {items.map(item => (
                             <div key={item.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-sm">
@@ -219,13 +220,14 @@ export const ArmoryAuditPhase: React.FC<{
                             <p className="text-zinc-600 italic text-sm">Armory empty. Add at least 3 items to map your arsenal.</p>
                         )}
                     </div>
-                </div>
-            </div>
 
-            <div className="mt-8 flex justify-end">
-                <Button onClick={onNext} disabled={items.length < 3}>
-                    Proceed to Compression &rarr;
-                </Button>
+                    {/* Pinned Proceed Button */}
+                    <div className="flex-none pt-4 bg-zinc-950 border-t border-zinc-800 mt-auto sticky bottom-0">
+                        <Button onClick={onNext} disabled={items.length < 3} className="w-full">
+                            Proceed to Compression &rarr;
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );
