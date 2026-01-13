@@ -115,8 +115,17 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
         {activeZone === Quadrant.MISCHIEF && <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-zinc-900/10 transition-colors duration-300" />}
       </div>
 
-      {/* Info Card */}
-      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 bg-zinc-900/95 backdrop-blur border border-white/20 p-4 pointer-events-none transition-all duration-300 z-20 ${activeZone ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+      {/* Info Card - Mirror Logic Position */}
+      <div
+        className={`absolute w-64 bg-zinc-900/95 backdrop-blur border border-white/20 p-4 pointer-events-none transition-all duration-300 z-20 
+        ${activeZone ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+        ${activeZone === Quadrant.CRAFT ? 'bottom-4 right-4 translate-x-0 translate-y-0' : ''}
+        ${activeZone === Quadrant.RITUAL ? 'bottom-4 left-4 translate-x-0 translate-y-0' : ''}
+        ${activeZone === Quadrant.SANDBOX ? 'top-4 right-4 translate-x-0 translate-y-0' : ''}
+        ${activeZone === Quadrant.MISCHIEF ? 'top-4 left-4 translate-x-0 translate-y-0' : ''}
+        ${!activeZone ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''}
+        `}
+      >
         {activeZone && (
           <>
             <h4 className="text-white font-bold uppercase tracking-wider mb-1">{QUADRANT_INFO[activeZone].title}</h4>
