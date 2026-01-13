@@ -2,8 +2,8 @@ import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } from 'recharts';
 import { ArmoryItem, Quadrant } from '../types';
 
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'gold' }> = ({ 
-  children, variant = 'primary', className = '', ...props 
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'gold' }> = ({
+  children, variant = 'primary', className = '', ...props
 }) => {
   const baseStyle = "font-mono text-sm px-6 py-3 uppercase tracking-wider transition-all duration-200 border disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
@@ -21,7 +21,7 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
 };
 
 export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <input 
+  <input
     className="w-full bg-zinc-900/50 border border-zinc-700 text-white p-3 font-mono focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-colors"
     {...props}
   />
@@ -30,9 +30,9 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
 export const SectionHeader: React.FC<{ title: string, subtitle?: string, onBack?: () => void }> = ({ title, subtitle, onBack }) => (
   <div className="mb-8 border-b border-zinc-800 pb-4">
     {onBack && (
-        <button onClick={onBack} className="mb-4 text-xs font-mono text-zinc-500 hover:text-white flex items-center gap-2 transition-colors">
-            &larr; BACK
-        </button>
+      <button onClick={onBack} className="mb-4 text-xs font-mono text-zinc-500 hover:text-white flex items-center gap-2 transition-colors">
+        &larr; BACK
+      </button>
     )}
     <h2 className="text-2xl font-bold uppercase tracking-tight text-white mb-2">{title}</h2>
     {subtitle && <p className="text-zinc-500 font-mono text-sm">{subtitle}</p>}
@@ -47,10 +47,10 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
   // Quadrant background labels
   const CustomBackground = () => (
     <g className="opacity-20 pointer-events-none select-none font-black text-4xl uppercase">
-      <text x="25%" y="25%" textAnchor="middle" fill="#fff">Mischief</text>
+      <text x="25%" y="25%" textAnchor="middle" fill="#fff">Craft</text>
       <text x="75%" y="25%" textAnchor="middle" fill="#fff">Ritual</text>
       <text x="25%" y="75%" textAnchor="middle" fill="#fff">Sandbox</text>
-      <text x="75%" y="75%" textAnchor="middle" fill="#fff">Craft</text>
+      <text x="75%" y="75%" textAnchor="middle" fill="#fff">Mischief</text>
     </g>
   );
 
@@ -69,7 +69,7 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
           <ReferenceLine y={0} stroke="#666" />
           <ReferenceLine x={0} stroke="#666" />
           <CustomBackground />
-          <Tooltip 
+          <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
@@ -99,7 +99,7 @@ export const ProgressBar: React.FC<{ current: number, total: number }> = ({ curr
   const progress = (current / total) * 100;
   return (
     <div className="fixed top-0 left-0 w-full h-1 bg-zinc-900 z-50">
-      <div 
+      <div
         className="h-full bg-white transition-all duration-500 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
         style={{ width: `${progress}%` }}
       />
