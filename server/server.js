@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config({ path: '../.env' }); // Load from root .env
 
 const app = express();
@@ -8,17 +10,18 @@ const PORT = 8000;
 app.use(cors());
 app.use(express.json());
 
-const { init } = require('@instantdb/admin');
+const { init, tx } = require('@instantdb/admin');
 
 // Initialize InstantDB
 const APP_ID = process.env.INSTANT_APP_ID;
+const ADMIN_TOKEN = process.env.INSTANT_ADMIN_TOKEN;
 let db = null;
 
-if (APP_ID) {
-  db = init({ appId: APP_ID });
-  console.log('InstantDB initialized with APP_ID');
+if (APP_ID && ADMIN_TOKEN) {
+  db = init({ appId: APP_ID, adminToken: ADMIN_TOKEN });
+  console.log('InstantDB initialized with APP_ID and ADMIN_TOKEN');
 } else {
-  console.warn('WARNING: INSTANT_APP_ID missing from environment. Persistence disabled.');
+  console.warn('WARNING: INSTANT_APP_ID or INSTANT_ADMIN_TOKEN missing from environment. Persistence disabled.');
 }
 
 app.get('/api/health', (req, res) => {
@@ -27,22 +30,25 @@ app.get('/api/health', (req, res) => {
 
 // Submit/Update Session
 app.post('/api/submit-test', async (req, res) => {
+  console.log('POST /api/submit-test received');
   if (!db) return res.status(503).json({ error: 'Persistence layer not initialized' });
 
   const state = req.body;
   const sessionId = state.id || `session_${Date.now()}`;
+  console.log(`Processing session: ${sessionId}`);
 
   try {
     await db.transact([
-      db.tx.sessions[sessionId].update({
+      tx.sessions[sessionId].update({
         ...state,
         updatedAt: Date.now()
       })
     ]);
+    console.log('Transaction Successful');
     res.json({ success: true, sessionId });
   } catch (err) {
     console.error('Transaction Failed:', err);
-    res.status(500).json({ error: 'Failed to persist session' });
+    res.status(500).json({ error: 'Failed to persist session', details: err.message || 'Check server logs' });
   }
 });
 

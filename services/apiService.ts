@@ -5,6 +5,7 @@ export const apiService = {
      * Persists the current session state to the backend.
      */
     async submitSession(state: SystemState): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+        console.log('apiService: submitSession triggered');
         try {
             const response = await fetch('/api/submit-test', {
                 method: 'POST',
@@ -14,8 +15,11 @@ export const apiService = {
                 body: JSON.stringify(state),
             });
 
+            console.log('apiService: Response status:', response.status);
+
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('apiService: Error response:', errorData);
                 throw new Error(errorData.error || 'Failed to submit session');
             }
 
