@@ -9,8 +9,10 @@ export const InstallationPhase: React.FC<{
     plan: string | null,
     onGeneratePlan: () => void,
     onBack: () => void,
-    isGenerating: boolean
-}> = ({ tool, plan, onGeneratePlan, onBack, isGenerating }) => {
+    onSave: () => void,
+    isGenerating: boolean,
+    isSaving: boolean
+}> = ({ tool, plan, onGeneratePlan, onBack, onSave, isGenerating, isSaving }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [validating, setValidating] = useState(false);
     const [liveConnected, setLiveConnected] = useState(false);
@@ -138,6 +140,16 @@ export const InstallationPhase: React.FC<{
                         </div>
                         <div className="font-mono text-sm leading-relaxed text-zinc-300 bg-zinc-900/50 p-6 border-l-2 border-white max-h-[500px] overflow-y-auto">
                             <SimpleMarkdown text={plan} />
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-zinc-800 flex justify-end">
+                            <Button
+                                onClick={onSave}
+                                disabled={isSaving}
+                                variant="gold"
+                                className="w-full md:w-auto"
+                            >
+                                {isSaving ? 'Synching with Neural Link...' : 'Commit Protocol to System'}
+                            </Button>
                         </div>
                     </div>
                 )}

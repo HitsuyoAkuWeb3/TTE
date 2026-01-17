@@ -7,6 +7,7 @@ import {
   Quadrant
 } from './types';
 import { generatePilotProtocol } from './services/geminiService';
+import { apiService } from './services/apiService';
 import { ProgressBar } from './components/Visuals';
 
 // Phase Components
@@ -20,6 +21,18 @@ import { InstallationPhase } from './components/phases/InstallationPhase';
 export default function App() {
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async (currentState: SystemState) => {
+    setIsSaving(true);
+    const result = await apiService.submitSession(currentState);
+    if (result.success) {
+      console.log("Session saved:", result.sessionId);
+    } else {
+      console.error("Save failed:", result.error);
+    }
+    setIsSaving(false);
+  };
 
   const getProgress = () => {
     switch (state.currentPhase) {
@@ -106,15 +119,18 @@ export default function App() {
             tool={state.candidates.find(c => c.id === state.selectedToolId) || null}
             plan={state.pilotPlan}
             isGenerating={isGeneratingPlan}
+            isSaving={isSaving}
             onGeneratePlan={async () => {
               setIsGeneratingPlan(true);
               const tool = state.candidates.find(c => c.id === state.selectedToolId);
               if (tool) {
                 const plan = await generatePilotProtocol(tool.plainName, tool.functionStatement);
-                setState(s => ({ ...s, pilotPlan: plan }));
+                const newState = { ...state, pilotPlan: plan };
+                setState(newState);
               }
               setIsGeneratingPlan(false);
             }}
+            onSave={() => handleSave(state)}
             onBack={() => setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }))}
           />
         )}
