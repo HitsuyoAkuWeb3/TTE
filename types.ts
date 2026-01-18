@@ -1,9 +1,12 @@
 export enum Phase {
   INTRO = 'INTRO',
+  ARCHIVE = 'ARCHIVE',
+  CALIBRATION = 'CALIBRATION',
   ARMORY_AUDIT = 'ARMORY_AUDIT',
   TOOL_COMPRESSION = 'TOOL_COMPRESSION',
   EVIDENCE_SCORING = 'EVIDENCE_SCORING',
   TOOL_LOCK = 'TOOL_LOCK',
+  VALUE_SYNTHESIS = 'VALUE_SYNTHESIS',
   INSTALLATION = 'INSTALLATION',
 }
 
@@ -43,6 +46,28 @@ export interface ToolCandidate {
   };
 }
 
+export interface OperatorProfile {
+  name: string;
+  industry: string;
+  strategicGoal: string;
+  preferredTone: 'clinical' | 'empathetic' | 'aggressive' | 'minimalist';
+}
+
+export interface TheoryOfValue {
+  fatalWound: string;
+  sacredCow: string;
+  molecularBond: string;
+  mvaRadar: {
+    shadowBeliefs: string[];
+    rawLingo: string[];
+  };
+  godfatherOffer: {
+    name: string;
+    transformation: string;
+    price: string;
+  };
+}
+
 export interface SystemState {
   id?: string;
   userId: string | null;
@@ -51,6 +76,9 @@ export interface SystemState {
   candidates: ToolCandidate[];
   selectedToolId: string | null;
   pilotPlan: string | null;
+  clientName?: string;
+  profile?: OperatorProfile | null;
+  theoryOfValue?: TheoryOfValue | null;
 }
 
 export interface AIAnalysisResult {
@@ -67,4 +95,5 @@ export const INITIAL_STATE: SystemState = {
   candidates: [],
   selectedToolId: null,
   pilotPlan: null,
+  theoryOfValue: null,
 };

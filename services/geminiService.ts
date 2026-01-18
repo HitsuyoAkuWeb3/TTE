@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality, LiveServerMessage } from "@google/genai";
-import { AIAnalysisResult, ToolCandidate } from "../types";
+import { AIAnalysisResult, ToolCandidate, OperatorProfile, TheoryOfValue } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 console.log('[DEBUG] API Key present:', !!apiKey, 'Length:', apiKey.length);
@@ -384,7 +384,7 @@ export const validateMarketWithSearch = async (toolName: string): Promise<string
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash-exp',
       contents: `Find 3 real-world examples of people or businesses who sell "${toolName}" or a very similar service. List them.`,
       config: {
         tools: [{ googleSearch: {} }]
@@ -437,22 +437,225 @@ export const generateAudioDossier = async (text: string): Promise<ArrayBuffer | 
   }
 }
 
-export const generatePilotProtocol = async (toolName: string, functionStatement: string): Promise<string> => {
+export const generatePilotProtocol = async (
+  toolName: string,
+  functionStatement: string,
+  clientName?: string,
+  profile?: OperatorProfile
+): Promise<string> => {
   if (!apiKey) return "API Key Required for Protocol.";
 
+  const profileContext = profile ? `
+      OPERATOR PROFILE:
+      - Name: ${profile.name}
+      - Industry: ${profile.industry}
+      - Strategic Goal: ${profile.strategicGoal}
+      - Preferred Tone: ${profile.preferredTone}
+  ` : '';
+
   const prompt = `
+      You are the TetraTool Senior Architect. 
+      ${profileContext}
+      
       Create a 7-Day Pilot Protocol for "${toolName}" (${functionStatement}).
-      Tone: Clinical, instructional.
+      CLIENT/SUBJECT: ${clientName || "[Unknown Subject]"}
+      Tone: ${profile?.preferredTone || 'clinical'}, instructional, tactical.
       Format: Markdown.
+      Make sure to explicitly mention the Subject Name in the header section of the protocol.
     `;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash-exp',
       contents: prompt,
     });
     return response.text || "Failed to generate protocol.";
   } catch (error) {
     return "Failed to generate protocol.";
   }
+};
+
+export const refinePilotProtocol = async (
+  originalPlan: string,
+  feedback: string,
+  clientName?: string,
+  profile?: OperatorProfile
+): Promise<string> => {
+  if (!apiKey) return "API Key Required for Protocol Refinement.";
+
+  const profileContext = profile ? `
+      OPERATOR PROFILE:
+      - Name: ${profile.name}
+      - Industry: ${profile.industry}
+      - Strategic Goal: ${profile.strategicGoal}
+      - Preferred Tone: ${profile.preferredTone}
+  ` : '';
+
+  const prompt = `
+      You are the TetraTool Senior Architect.
+      ${profileContext}
+      
+      SUBJECT: ${clientName || "[Unknown Subject]"}
+      
+      ORIGINAL PROTOCOL:
+      ${originalPlan}
+      
+      USER FEEDBACK:
+      "${feedback}"
+      
+      TASK:
+      Refine the 7-Day Pilot Protocol based on the feedback. 
+      Maintain the "${profile?.preferredTone || 'clinical'}" tone.
+      Ensure the Subject Identification remains prominent.
+      Return the FULL updated protocol in Markdown.
+    `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: prompt,
+    });
+    return response.text || "Failed to refine protocol.";
+  } catch (error) {
+    console.error("Refinement Error:", error);
+    return "Failed to refine protocol.";
+  }
+};
+export const conductMvaRadar = async (
+  toolName: string,
+  functionStatement: string,
+  profile?: OperatorProfile
+): Promise<{ shadowBeliefs: string[], rawLingo: string[], sacredCow: string, fatalWound: string }> => {
+  if (!apiKey) throw new Error("API Key required for Radar Scan");
+
+  const prompt = `
+    You are a Market Forensic Chemist.
+    OPERATOR_CONTEXT: ${profile?.strategicGoal || 'Sovereign Growth'}
+    TOOL: ${toolName} (${functionStatement})
+
+    TASK:
+    1. Scan niche forums and industry discussions for this tool category.
+    2. Identify the "Fatal Wound" (the existential root glitch keeping users awake).
+    3. Identify a "Sacred Cow" (industry best practice that users quietly despise).
+    4. Extract 5 "Shadow Beliefs" (hidden fears/doubts people don't admit publicly).
+    5. Extract 5 "Raw Lingo" phrases actually used in forums.
+
+    Use Google Search to find current, high-fidelity data.
+  `;
+
+  console.log("[RADAR] Initializing forensic scan for:", toolName);
+
+  try {
+    // Stage 1: Search & Evidence Extraction (No JSON Constraint)
+    const searchResponse = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    const evidence = searchResponse.text || "No direct forum evidence found. Proceeding with architectural extrapolation.";
+    console.log("[RADAR] Evidence collected, synthesizing forensic report...");
+
+    // Stage 2: Synthesis & JSON Structuring (No Search Tool)
+    const synthesisResponse = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: `
+        Identify the Fatal Wound, Sacred Cow, Shadow Beliefs, and Raw Lingo according to the original instructions.
+        
+        FORENSIC EVIDENCE:
+        ${evidence}
+
+        Even if the evidence is minimal, use architectural logic to nominate a Fatal Wound and Shadow Beliefs based on the tool's function: ${toolName}.
+      `,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            fatalWound: { type: Type.STRING },
+            sacredCow: { type: Type.STRING },
+            shadowBeliefs: { type: Type.ARRAY, items: { type: Type.STRING } },
+            rawLingo: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["fatalWound", "sacredCow", "shadowBeliefs", "rawLingo"]
+        } as Schema
+      }
+    });
+
+    if (!synthesisResponse.text) {
+      throw new Error("EMPTY_SYNTHESIS_RESPONSE: The architect failed to bind the forensic data.");
+    }
+
+    const result = JSON.parse(synthesisResponse.text);
+    console.log("[RADAR] Scan successful");
+    return result;
+  } catch (error: any) {
+    console.error("[RADAR] Critical failure during scan:", error);
+    throw new Error(error.message || "Unknown System Interference");
+  }
+};
+
+export const generateTheoryOfValue = async (
+  tool: ToolCandidate,
+  radar: any,
+  profile?: OperatorProfile
+): Promise<TheoryOfValue> => {
+  if (!apiKey) throw new Error("API Key required for ToV Synthesis");
+
+  const prompt = `
+    You are a Sovereign Architect. 
+    Construct a "Theory of Value" for the tool "${tool.plainName}".
+    
+    RADAR_DATA: 
+    - Fatal Wound: ${radar.fatalWound}
+    - Sacred Cow: ${radar.sacredCow}
+    - Shadow Beliefs: ${radar.shadowBeliefs.join(", ")}
+    
+    OPERATOR_CONTEXT:
+    - Industry: ${profile?.industry}
+    - Tone: ${profile?.preferredTone}
+
+    TASK:
+    Synthesize the "Molecular Bond" (why this tool works where others fail).
+    Architecture a "Godfather Offer" ($10,000+) based on Transformation.
+    Name the Offer with a mythic, authoritative name.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash-exp',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          fatalWound: { type: Type.STRING },
+          sacredCow: { type: Type.STRING },
+          molecularBond: { type: Type.STRING },
+          mvaRadar: {
+            type: Type.OBJECT,
+            properties: {
+              shadowBeliefs: { type: Type.ARRAY, items: { type: Type.STRING } },
+              rawLingo: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          },
+          godfatherOffer: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              transformation: { type: Type.STRING },
+              price: { type: Type.STRING }
+            }
+          }
+        },
+        required: ["fatalWound", "sacredCow", "molecularBond", "mvaRadar", "godfatherOffer"]
+      } as Schema
+    }
+  });
+
+  const result = JSON.parse(response.text || "{}");
+  console.log("[TOV] Synthesis complete:", result.godfatherOffer.name);
+  return result;
 };

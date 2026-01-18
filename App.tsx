@@ -17,11 +17,15 @@ import { ArmoryAuditPhase } from './components/phases/ArmoryAuditPhase';
 import { ToolCompressionPhase } from './components/phases/ToolCompressionPhase';
 import { EvidenceScoringPhase } from './components/phases/EvidenceScoringPhase';
 import { ToolLockPhase } from './components/phases/ToolLockPhase';
+import { ValueChemistryPhase } from './components/phases/ValueChemistryPhase';
 import { InstallationPhase } from './components/phases/InstallationPhase';
 import { AuthTerminal } from './components/AuthTerminal';
+import { ArchivePhase } from './components/phases/ArchivePhase';
+import { CalibrationPhase } from './components/phases/CalibrationPhase';
 
 export default function App() {
   const { isLoading, user, error } = db.useAuth();
+  const { data: profileData } = db.useQuery(user ? { profiles: { $: { where: { userId: user.id } } } } : null);
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,9 +35,32 @@ export default function App() {
     if (user) {
       setState(s => ({ ...s, userId: user.id }));
     } else {
-      setState(s => ({ ...s, userId: null }));
+      setState(s => ({ ...s, userId: null, profile: null }));
     }
   }, [user]);
+
+  // Sync profile data to state
+  React.useEffect(() => {
+    if (profileData?.profiles?.length > 0) {
+      setState(s => ({ ...s, profile: profileData.profiles[0] }));
+    } else if (user && profileData && profileData.profiles.length === 0) {
+      // If profile fetch returned empty, and we are not in archive, force calibration
+      setState(s => {
+        if (s.currentPhase === Phase.ARCHIVE) return s;
+        if (s.currentPhase === Phase.CALIBRATION) return s;
+        return { ...s, currentPhase: Phase.CALIBRATION };
+      });
+    }
+  }, [profileData, user]);
+
+  const handleCalibrationComplete = async (profile: any) => {
+    if (!user) return;
+    const profileId = state.profile?.id || crypto.randomUUID();
+    await db.transact([
+      db.tx.profiles[profileId].update({ ...profile, userId: user.id })
+    ]);
+    setState(s => ({ ...s, profile: { ...profile, id: profileId }, currentPhase: Phase.INTRO }));
+  };
 
   const handleSave = async (currentState: SystemState) => {
     setIsSaving(true);
@@ -62,10 +89,13 @@ export default function App() {
   const getProgress = () => {
     switch (state.currentPhase) {
       case Phase.INTRO: return 0;
+      case Phase.ARCHIVE: return 0;
+      case Phase.CALIBRATION: return 5;
       case Phase.ARMORY_AUDIT: return 20;
       case Phase.TOOL_COMPRESSION: return 40;
       case Phase.EVIDENCE_SCORING: return 60;
-      case Phase.TOOL_LOCK: return 80;
+      case Phase.TOOL_LOCK: return 75;
+      case Phase.VALUE_SYNTHESIS: return 90;
       case Phase.INSTALLATION: return 100;
       default: return 0;
     }
@@ -93,17 +123,48 @@ export default function App() {
         </div>
         <button
           onClick={() => db.auth.signOut()}
-          className="text-[9px] font-mono text-zinc-600 hover:text-white transition-colors"
+          className="text-[9px] font-mono text-[#FF2A2A] hover:bg-[#FF2A2A] hover:text-black transition-all border border-[#FF2A2A]/50 px-2 py-1 bg-black/50"
         >
           [ TERMINATE_LINK ]
         </button>
+        {user && (
+          <button
+            onClick={() => setState(s => ({ ...s, currentPhase: Phase.CALIBRATION }))}
+            className="text-[9px] font-mono text-[#eab308] hover:bg-[#eab308] hover:text-black transition-all border border-[#eab308]/50 px-2 py-1 bg-black/50"
+          >
+            [ RE-CALIBRATE ]
+          </button>
+        )}
+        {user && state.currentPhase !== Phase.ARCHIVE && (
+          <button
+            onClick={() => setState(s => ({ ...s, currentPhase: Phase.ARCHIVE }))}
+            className="text-[9px] font-mono text-[#00FF41] hover:bg-[#00FF41] hover:text-black transition-all border border-[#00FF41]/50 px-2 py-1 bg-black/50"
+          >
+            [ DOSSIER_ARCHIVE ]
+          </button>
+        )}
       </div>
 
       <ProgressBar current={getProgress()} total={100} />
 
       <main className="container mx-auto px-4 py-16 md:py-24">
         {state.currentPhase === Phase.INTRO && (
-          <IntroPhase onStart={() => setState(s => ({ ...s, currentPhase: Phase.ARMORY_AUDIT }))} />
+          <IntroPhase onStart={(name) => setState(s => ({ ...s, clientName: name, currentPhase: Phase.ARMORY_AUDIT }))} />
+        )}
+
+        {state.currentPhase === Phase.ARCHIVE && user && (
+          <ArchivePhase
+            userId={user.id}
+            onSelect={(loadedState) => setState({ ...loadedState, userId: user.id, profile: state.profile })}
+            onNew={() => setState({ ...INITIAL_STATE, userId: user.id, profile: state.profile, currentPhase: Phase.INTRO })}
+          />
+        )}
+
+        {state.currentPhase === Phase.CALIBRATION && (
+          <CalibrationPhase
+            initialProfile={state.profile}
+            onComplete={handleCalibrationComplete}
+          />
         )}
 
         {state.currentPhase === Phase.ARMORY_AUDIT && (
@@ -111,7 +172,7 @@ export default function App() {
             items={state.armory}
             onAddItem={(verb, x, y) => {
               const newItem: ArmoryItem = {
-                id: Math.random().toString(36).substr(2, 9),
+                id: crypto.randomUUID(),
                 verb,
                 x: x,
                 y: y,
@@ -146,8 +207,23 @@ export default function App() {
         {state.currentPhase === Phase.TOOL_LOCK && (
           <ToolLockPhase
             candidates={state.candidates}
-            onLock={(id) => setState(s => ({ ...s, selectedToolId: id, currentPhase: Phase.INSTALLATION }))}
+            onLock={(id) => setState(s => ({ ...s, selectedToolId: id, currentPhase: Phase.VALUE_SYNTHESIS }))}
             onBack={() => setState(s => ({ ...s, currentPhase: Phase.EVIDENCE_SCORING }))}
+          />
+        )}
+
+        {state.currentPhase === Phase.VALUE_SYNTHESIS && state.selectedToolId && (
+          <ValueChemistryPhase
+            tool={state.candidates.find(c => c.id === state.selectedToolId)!}
+            profile={state.profile}
+            onComplete={(tov) => setState(s => ({ ...s, theoryOfValue: tov, currentPhase: Phase.INSTALLATION }))}
+            onBack={() => {
+              if (state.pilotPlan) {
+                setState(s => ({ ...s, currentPhase: Phase.INSTALLATION }));
+              } else {
+                setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }));
+              }
+            }}
           />
         )}
 
@@ -155,23 +231,52 @@ export default function App() {
           <InstallationPhase
             tool={state.candidates.find(c => c.id === state.selectedToolId) || null}
             plan={state.pilotPlan}
+            clientName={state.clientName}
+            profile={state.profile}
+            theoryOfValue={state.theoryOfValue}
             isGenerating={isGeneratingPlan}
             isSaving={isSaving}
             onGeneratePlan={async () => {
               setIsGeneratingPlan(true);
               const tool = state.candidates.find(c => c.id === state.selectedToolId);
               if (tool) {
-                const plan = await generatePilotProtocol(tool.plainName, tool.functionStatement);
+                const plan = await generatePilotProtocol(
+                  tool.plainName,
+                  tool.functionStatement,
+                  state.clientName,
+                  state.profile || undefined
+                );
                 const newState = { ...state, pilotPlan: plan };
                 setState(newState);
               }
               setIsGeneratingPlan(false);
             }}
+            onUpdatePlan={(newPlan) => setState(s => ({ ...s, pilotPlan: newPlan }))}
             onSave={() => handleSave(state)}
-            onBack={() => setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }))}
+            onRetroactiveAudit={() => setState(s => ({ ...s, currentPhase: Phase.VALUE_SYNTHESIS }))}
+            onBack={() => {
+              // If we have a theory of value, we likely just finished synthesis, so back to synthesis
+              // If we DON'T have a theory of value (existing user), back should go to tool lock
+              if (state.theoryOfValue) {
+                setState(s => ({ ...s, currentPhase: Phase.VALUE_SYNTHESIS }));
+              } else {
+                setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }));
+              }
+            }}
           />
         )}
       </main>
+
+      {user && state.currentPhase !== Phase.ARCHIVE && (
+        <footer className="fixed bottom-8 left-0 w-full flex justify-center z-40 pointer-events-none">
+          <button
+            onClick={() => setState(s => ({ ...s, currentPhase: Phase.ARCHIVE }))}
+            className="text-[10px] font-mono text-[#00FF41] hover:bg-[#00FF41] hover:text-black transition-all uppercase tracking-[0.2em] bg-black/80 backdrop-blur-sm px-6 py-3 border border-[#00FF41]/30 hover:border-[#00FF41] rounded-sm pointer-events-auto shadow-[0_0_20px_rgba(0,255,65,0.1)]"
+          >
+            Access_Existing_Dossiers
+          </button>
+        </footer>
+      )}
     </div>
   );
 }
