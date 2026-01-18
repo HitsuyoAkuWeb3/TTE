@@ -57,10 +57,12 @@ export const InstallationPhase: React.FC<{
             try {
                 const session = await connectLiveSession();
                 // Send context
-                session.sendRealtimeInput([{
-                    mimeType: "text/plain",
-                    data: btoa(`The user has selected the tool: ${tool.plainName}. Function: ${tool.functionStatement}. Promise: ${tool.promise}. Challenge them on how they will monetize this on Day 1.`)
-                }]);
+                session.sendRealtimeInput({
+                    media: {
+                        mimeType: "text/plain",
+                        data: btoa(`The user has selected the tool: ${tool.plainName}. Function: ${tool.functionStatement}. Promise: ${tool.promise}. Challenge them on how they will monetize this on Day 1.`)
+                    }
+                });
                 setLiveConnected(true);
             } catch (e) {
                 console.error("Live Error", e);

@@ -31,11 +31,11 @@ export const apiService = {
     },
 
     /**
-     * Retrieves all sessions from the backend.
+     * Retrieves all sessions from the backend for a specific user.
      */
-    async getResults(): Promise<any> {
+    async getResults(userId: string): Promise<any> {
         try {
-            const response = await fetch('/api/get-results');
+            const response = await fetch(`/api/get-results?userId=${userId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch results');
             }

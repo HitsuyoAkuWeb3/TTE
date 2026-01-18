@@ -8,6 +8,7 @@ import {
 } from './types';
 import { generatePilotProtocol } from './services/geminiService';
 import { apiService } from './services/apiService';
+import { db } from './services/instantDb';
 import { ProgressBar } from './components/Visuals';
 
 // Phase Components
@@ -17,22 +18,46 @@ import { ToolCompressionPhase } from './components/phases/ToolCompressionPhase';
 import { EvidenceScoringPhase } from './components/phases/EvidenceScoringPhase';
 import { ToolLockPhase } from './components/phases/ToolLockPhase';
 import { InstallationPhase } from './components/phases/InstallationPhase';
+import { AuthTerminal } from './components/AuthTerminal';
 
 export default function App() {
+  const { isLoading, user, error } = db.useAuth();
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Sync auth user to state
+  React.useEffect(() => {
+    if (user) {
+      setState(s => ({ ...s, userId: user.id }));
+    } else {
+      setState(s => ({ ...s, userId: null }));
+    }
+  }, [user]);
+
   const handleSave = async (currentState: SystemState) => {
     setIsSaving(true);
     const result = await apiService.submitSession(currentState);
-    if (result.success) {
+    if (result.success && result.sessionId) {
       console.log("Session saved:", result.sessionId);
+      setState(s => ({ ...s, id: result.sessionId }));
     } else {
       console.error("Save failed:", result.error);
     }
     setIsSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.4em] text-zinc-500 animate-pulse">
+        Establishing Link...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <div className="min-h-screen bg-zinc-950 text-white"><AuthTerminal /></div>;
+  }
 
   const getProgress = () => {
     switch (state.currentPhase) {
@@ -62,6 +87,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-white selection:text-black">
+      <div className="absolute top-4 left-4 z-50 flex items-center gap-4">
+        <div className="text-[9px] font-mono text-zinc-500 border border-zinc-800 px-2 py-1 bg-black/50">
+          NODE: {user.email}
+        </div>
+        <button
+          onClick={() => db.auth.signOut()}
+          className="text-[9px] font-mono text-zinc-600 hover:text-white transition-colors"
+        >
+          [ TERMINATE_LINK ]
+        </button>
+      </div>
+
       <ProgressBar current={getProgress()} total={100} />
 
       <main className="container mx-auto px-4 py-16 md:py-24">

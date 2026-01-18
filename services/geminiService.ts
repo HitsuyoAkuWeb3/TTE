@@ -5,6 +5,20 @@ const apiKey = process.env.API_KEY || '';
 console.log('[DEBUG] API Key present:', !!apiKey, 'Length:', apiKey.length);
 const ai = new GoogleGenAI({ apiKey });
 
+const WORKLET_PROCESSOR = `
+  class AudioCaptureProcessor extends AudioWorkletProcessor {
+    process(inputs) {
+      const input = inputs[0];
+      if (input && input.length > 0 && input[0].length > 0) {
+        // Send the first channel data
+        this.port.postMessage(input[0]);
+      }
+      return true;
+    }
+  }
+  registerProcessor('audio-capture-processor', AudioCaptureProcessor);
+`;
+
 // --- LIVE API AUDIO HELPERS ---
 
 function decode(base64: string) {
@@ -68,6 +82,8 @@ let outputAudioContext: AudioContext | null = null;
 let nextStartTime = 0;
 let sources = new Set<AudioBufferSourceNode>();
 let currentSession: any = null;
+let audioWorkletNode: AudioWorkletNode | null = null;
+let mediaStreamSource: MediaStreamAudioSourceNode | null = null;
 
 export const disconnectLiveSession = async () => {
   if (currentSession) {
@@ -78,6 +94,17 @@ export const disconnectLiveSession = async () => {
       console.warn("Error closing Live session:", e);
     }
     currentSession = null;
+  }
+
+  // Explicitly stop and disconnect audio nodes
+  if (audioWorkletNode) {
+    audioWorkletNode.disconnect();
+    audioWorkletNode.port.onmessage = null;
+    audioWorkletNode = null;
+  }
+  if (mediaStreamSource) {
+    mediaStreamSource.disconnect();
+    mediaStreamSource = null;
   }
 
   nextStartTime = 0;
@@ -117,21 +144,26 @@ export const connectLiveSession = async () => {
         console.log("Live Session Opened");
         if (!inputAudioContext) return;
 
-        const source = inputAudioContext.createMediaStreamSource(stream);
-        const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
+        // Load Worklet
+        const blob = new Blob([WORKLET_PROCESSOR], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
 
-        scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-          const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-          const pcmData = createPcmData(inputData);
+        inputAudioContext.audioWorklet.addModule(url).then(() => {
+          if (!inputAudioContext || !currentSession) return;
 
-          // Send audio chunk
-          sessionPromise.then(session => {
-            session.sendRealtimeInput({ media: pcmData });
-          });
-        };
+          mediaStreamSource = inputAudioContext.createMediaStreamSource(stream);
+          audioWorkletNode = new AudioWorkletNode(inputAudioContext, 'audio-capture-processor');
 
-        source.connect(scriptProcessor);
-        scriptProcessor.connect(inputAudioContext.destination);
+          audioWorkletNode.port.onmessage = (event) => {
+            if (!currentSession) return;
+            const pcmData = createPcmData(event.data);
+            currentSession.sendRealtimeInput({ media: pcmData });
+          };
+
+          mediaStreamSource.connect(audioWorkletNode);
+          audioWorkletNode.connect(inputAudioContext.destination);
+          URL.revokeObjectURL(url);
+        }).catch(e => console.error("Worklet Error", e));
       },
       onmessage: async (message: LiveServerMessage) => {
         if (!outputAudioContext) return;

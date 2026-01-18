@@ -34,21 +34,29 @@ app.post('/api/submit-test', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Persistence layer not initialized' });
 
   const state = req.body;
-  const sessionId = state.id || `session_${Date.now()}`;
-  console.log(`Processing session: ${sessionId}`);
+  const userId = state.userId;
+  if (!userId) return res.status(401).json({ error: 'Authentication required' });
+
+  const sessionId = state.id || crypto.randomUUID();
+  console.log(`Processing session: ${sessionId} for user: ${userId}`);
 
   try {
     await db.transact([
       tx.sessions[sessionId].update({
         ...state,
+        id: sessionId,
+        userId: userId,
         updatedAt: Date.now()
       })
     ]);
     console.log('Transaction Successful');
     res.json({ success: true, sessionId });
   } catch (err) {
-    console.error('Transaction Failed:', err);
-    res.status(500).json({ error: 'Failed to persist session', details: err.message || 'Check server logs' });
+    console.error('Transaction Failed:', err.message);
+    res.status(500).json({
+      error: 'Failed to persist session',
+      details: err.message || 'Check server logs'
+    });
   }
 });
 
@@ -56,17 +64,25 @@ app.post('/api/submit-test', async (req, res) => {
 app.get('/api/get-results', async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Persistence layer not initialized' });
 
+  const userId = req.query.userId;
+  if (!userId) return res.status(401).json({ error: 'User ID required for retrieval' });
+
   try {
-    // In InstantDB Admin, querying is often done via standard fetch or specific patterns
-    // For now, we'll return a simple response or attempt a base query if available in admin SDK
-    // Note: Admin SDK query syntax varies by version, usually use db.query
-    const data = await db.query({ sessions: {} });
+    const data = await db.query({
+      sessions: {
+        $: {
+          where: { userId: userId }
+        }
+      }
+    });
     res.json(data);
   } catch (err) {
     console.error('Query Failed:', err);
     res.status(500).json({ error: 'Failed to fetch sessions' });
   }
 });
+
+const crypto = require('crypto');
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);

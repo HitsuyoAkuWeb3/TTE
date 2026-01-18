@@ -44,6 +44,8 @@ export interface ToolCandidate {
 }
 
 export interface SystemState {
+  id?: string;
+  userId: string | null;
   currentPhase: Phase;
   armory: ArmoryItem[];
   candidates: ToolCandidate[];
@@ -60,6 +62,7 @@ export interface AIAnalysisResult {
 
 export const INITIAL_STATE: SystemState = {
   currentPhase: Phase.INTRO,
+  userId: null,
   armory: [],
   candidates: [],
   selectedToolId: null,
