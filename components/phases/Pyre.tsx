@@ -15,7 +15,10 @@ interface PyreProps {
 export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) => {
     const [phase, setPhase] = useState<'confirm' | 'burning' | 'ashes'>('confirm');
     const [burnProgress, setBurnProgress] = useState(0);
+    const [confirmText, setConfirmText] = useState('');
     const { v } = useVernacular();
+
+    const isConfirmed = confirmText.trim().toLowerCase() === tool.plainName.trim().toLowerCase();
 
     useEffect(() => {
         if (phase !== 'burning') return;
@@ -40,12 +43,20 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
     }, [phase, tool.id, onBurnComplete]);
 
     const handleIgnite = useCallback(() => {
+        if (!isConfirmed) return;
         setPhase('burning');
-    }, []);
+    }, [isConfirmed]);
 
     if (phase === 'confirm') {
         return (
-            <div className="fixed inset-0 z-200 bg-void/90 flex items-center justify-center animate-fade-in">
+            <div
+                className="fixed inset-0 z-200 flex items-center justify-center animate-fade-in transition-colors duration-300"
+                style={{
+                    backgroundColor: confirmText.length > 0 && !isConfirmed
+                        ? 'rgba(127, 29, 29, 0.15)'
+                        : 'rgba(0, 0, 0, 0.9)',
+                }}
+            >
                 <div className="max-w-md w-full mx-4 border border-red-900/50 bg-void p-8 space-y-6">
                     <div className="text-center space-y-2">
                         <div className="text-3xl">🔥</div>
@@ -67,6 +78,29 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
                         {v.pyre_description}
                     </p>
 
+                    {/* Typed Confirmation */}
+                    <div className="space-y-2">
+                        <label className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest block text-center">
+                            {v.pyre_confirm_prompt}
+                        </label>
+                        <input
+                            type="text"
+                            value={confirmText}
+                            onChange={(e) => setConfirmText(e.target.value)}
+                            placeholder={tool.plainName}
+                            className="w-full bg-zinc-900 border text-sm font-mono text-bone px-4 py-3 text-center tracking-wider transition-colors duration-200 outline-none"
+                            style={{
+                                borderColor: isConfirmed ? '#EF4444' : '#27272a',
+                            }}
+                            autoFocus
+                        />
+                        {confirmText.length > 0 && !isConfirmed && (
+                            <div className="text-[8px] font-mono text-hazard text-center uppercase tracking-widest">
+                                {v.pyre_confirm_mismatch}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex gap-3">
                         <button
                             onClick={onCancel}
@@ -76,7 +110,12 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
                         </button>
                         <button
                             onClick={handleIgnite}
-                            className="flex-1 py-3 text-[10px] font-mono uppercase tracking-wider border border-red-800 text-red-400 hover:bg-red-900/20 hover:text-red-300 hover:border-red-600 transition-all"
+                            disabled={!isConfirmed}
+                            className={`flex-1 py-3 text-[10px] font-mono uppercase tracking-wider border transition-all ${
+                                isConfirmed
+                                    ? 'border-red-800 text-red-400 hover:bg-red-900/20 hover:text-red-300 hover:border-red-600 cursor-pointer'
+                                    : 'border-zinc-800 text-zinc-700 cursor-not-allowed'
+                            }`}
                         >
                             {v.pyre_ignite}
                         </button>

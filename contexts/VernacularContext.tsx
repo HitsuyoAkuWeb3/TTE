@@ -74,6 +74,15 @@ export interface VernacularDictionary {
     xp_calibration: string;
     xp_finalized: string;
     xp_burned: string;
+    xp_armory_item: string;
+    xp_compressed: string;
+    xp_scored: string;
+    xp_locked: string;
+    xp_theory: string;
+    xp_ritual_entry: string;
+    ceremony_overline: string;
+    ceremony_level: string;
+    ceremony_dismiss: string;
 
     // ── Calibration Phase ──────────────────────────────
     calibration_title: string;
@@ -155,12 +164,26 @@ export interface VernacularDictionary {
     refine_cta_processing: string;
     refine_footer: string;
 
+    // ── Tone Warden (Signal Fidelity) ─────────────────
+    warden_title: string;
+    warden_subtitle: string;
+    warden_input_label: string;
+    warden_input_placeholder: string;
+    warden_analyze_cta: string;
+    warden_analyzing: string;
+    warden_score_label: string;
+    warden_rewrite_label: string;
+    warden_copy_cta: string;
+    warden_drift_label: string;
+
     // ── Pyre (tool retirement) ────────────────────────
     pyre_title: string;
     pyre_subtitle: string;
     pyre_target_label: string;
     pyre_description: string;
     pyre_cancel: string;
+    pyre_confirm_prompt: string;
+    pyre_confirm_mismatch: string;
     pyre_ignite: string;
     pyre_progress_label: string;
     pyre_complete: string;
@@ -212,6 +235,30 @@ export interface VernacularDictionary {
     armory_empty_terminal: string;
     armory_status_label: string;
     armory_proceed: string;
+    armory_cap_locked: string;
+    armory_cap_locked_detail: string;
+    armory_cap_input_blocked: string;
+    warden_intercept_blocked: string;
+    warden_intercept_warning: string;
+    cremate_toggle: string;
+    cremate_title: string;
+    cremate_warning: string;
+    cremate_confirm_prompt: string;
+    cremate_button: string;
+    xp_phoenix_reborn: string;
+    degraded_banner: string;
+    degraded_detail: string;
+    interrogation_title: string;
+    interrogation_placeholder: string;
+    interrogation_xp: string;
+    xp_interrogation: string;
+    scaffold_title: string;
+    scaffold_success_signal: string;
+    scaffold_proceed: string;
+    simulation_title: string;
+    simulation_placeholder: string;
+    simulation_exit: string;
+    simulation_complete: string;
 
     // ── Evidence Scoring Phase (inline) ───────────────
     scoring_subtitle: string;
@@ -294,6 +341,15 @@ const MYTHIC: VernacularDictionary = {
     xp_calibration: 'Calibration Complete',
     xp_finalized: 'Dossier Finalized',
     xp_burned: 'Tool Burned — Space Cleared',
+    xp_armory_item: 'Armory Item Added',
+    xp_compressed: 'Tool Compressed',
+    xp_scored: 'Evidence Scored',
+    xp_locked: 'Tool Locked',
+    xp_theory: 'Theory Synthesized',
+    xp_ritual_entry: 'Ritual Logged',
+    ceremony_overline: 'RANK ACHIEVED',
+    ceremony_level: 'LEVEL',
+    ceremony_dismiss: 'ACKNOWLEDGE',
 
     // Calibration
     calibration_title: 'Neural Calibration System',
@@ -375,12 +431,26 @@ const MYTHIC: VernacularDictionary = {
     refine_cta_processing: 'PROCESSING PATCH...',
     refine_footer: 'TetraTool Engine // Live Refinement Node',
 
+    // ── Tone Warden ──────────────────────────────────
+    warden_title: 'THE TONE WARDEN',
+    warden_subtitle: 'Guard the Sovereign Frequency.',
+    warden_input_label: 'DRAFT TRANSMISSION',
+    warden_input_placeholder: 'Paste your outbound signal here for fidelity analysis...',
+    warden_analyze_cta: 'SCAN FOR DRIFT',
+    warden_analyzing: 'SCANNING FREQUENCY...',
+    warden_score_label: 'SIGNAL FIDELITY',
+    warden_rewrite_label: 'SOVEREIGN REWRITE',
+    warden_copy_cta: 'COPY TRANSMISSION',
+    warden_drift_label: 'DRIFT DETECTED',
+
     // Pyre
     pyre_title: 'The Pyre',
     pyre_subtitle: 'Tool Retirement Ceremony',
     pyre_target_label: 'Weapon to Burn',
     pyre_description: 'This tool no longer serves the mission. Burning it clears space for a new Starting Tool. This action archives the tool permanently.',
     pyre_cancel: 'Stand Down',
+    pyre_confirm_prompt: 'TYPE THE ASSET NAME TO CONFIRM CREMATION',
+    pyre_confirm_mismatch: 'DESIGNATION MISMATCH — IGNITION LOCKED',
     pyre_ignite: '🔥 Ignite the Pyre',
     pyre_progress_label: 'Burning',
     pyre_complete: 'Archived. Space cleared for evolution.',
@@ -433,6 +503,30 @@ const MYTHIC: VernacularDictionary = {
     armory_empty_terminal: 'Armory empty. Start adding items above.',
     armory_status_label: 'items',
     armory_proceed: 'Proceed to Compression →',
+    armory_cap_locked: '[ CAPACITY BREACH ] — ARMORY SEALED',
+    armory_cap_locked_detail: 'Maximum {cap} weapons deployed. Burn assets in the Pyre before adding new ordnance.',
+    armory_cap_input_blocked: 'ARMORY SEALED — BURN TO MAKE SPACE',
+    warden_intercept_blocked: 'SIGNAL DRIFT DETECTED — TRANSMISSION BLOCKED',
+    warden_intercept_warning: 'Commodity syntax intercepted. Recalibrate or burn the draft.',
+    cremate_toggle: 'DOSSIER CREMATION',
+    cremate_title: '⚰ CREMATE DOSSIER — PERMADEATH',
+    cremate_warning: 'This action is irreversible. Your profile, armory, tools, scores, and all session data will be permanently destroyed. You will be reborn at Phase 1 as a new operator.',
+    cremate_confirm_prompt: 'Type {word} to confirm destruction',
+    cremate_button: 'IGNITE THE DOSSIER',
+    xp_phoenix_reborn: 'PHOENIX REBORN — Identity destroyed and rebuilt',
+    degraded_banner: '[ SIGNAL DEGRADED ] — RE-CALIBRATION REQUIRED',
+    degraded_detail: 'Inactivity detected. Your access has been revoked until recalibration.',
+    interrogation_title: 'ACTIVE INTERROGATION',
+    interrogation_placeholder: 'Prove it. Names, numbers, outcomes — no abstractions.',
+    interrogation_xp: '40',
+    xp_interrogation: 'INTERROGATION SURVIVED — knowledge transferred',
+    scaffold_title: 'BRIEFING',
+    scaffold_success_signal: 'VICTORY CONDITION',
+    scaffold_proceed: 'Acknowledged. Begin.',
+    simulation_title: 'COMBAT SIMULATION',
+    simulation_placeholder: 'Deploy your tactical response — this is a war room, not a classroom.',
+    simulation_exit: 'Disengage',
+    simulation_complete: 'Simulation Survived',
 
     // Evidence Scoring
     scoring_subtitle: 'Evidence Gates. High claims require high proof.',
@@ -515,6 +609,15 @@ const INDUSTRIAL: VernacularDictionary = {
     xp_calibration: 'Profile Updated',
     xp_finalized: 'Report Finalized',
     xp_burned: 'Asset Retired',
+    xp_armory_item: 'Asset Catalogued',
+    xp_compressed: 'Asset Distilled',
+    xp_scored: 'Evidence Filed',
+    xp_locked: 'Disruptor Locked',
+    xp_theory: 'Value Engine Forged',
+    xp_ritual_entry: 'Daily Report Filed',
+    ceremony_overline: 'RANK UNLOCKED',
+    ceremony_level: 'TIER',
+    ceremony_dismiss: 'PROCEED',
 
     // Calibration
     calibration_title: 'Operator Setup',
@@ -596,12 +699,26 @@ const INDUSTRIAL: VernacularDictionary = {
     refine_cta_processing: 'UPDATING...',
     refine_footer: 'TetraTool Engine // Report Editor',
 
+    // ── Tone Warden ──────────────────────────────────
+    warden_title: 'SIGNAL FIDELITY ENGINE',
+    warden_subtitle: 'Validate outbound signal integrity.',
+    warden_input_label: 'OUTBOUND CONTENT',
+    warden_input_placeholder: 'Paste outbound content for signal analysis...',
+    warden_analyze_cta: 'ANALYZE SIGNAL',
+    warden_analyzing: 'ANALYZING...',
+    warden_score_label: 'FIDELITY SCORE',
+    warden_rewrite_label: 'OPTIMIZED VERSION',
+    warden_copy_cta: 'COPY TO CLIPBOARD',
+    warden_drift_label: 'SIGNAL DRIFT ITEMS',
+
     // Pyre
     pyre_title: 'Asset Retirement',
     pyre_subtitle: 'Asset Decommission',
     pyre_target_label: 'Asset to Retire',
     pyre_description: 'This asset no longer aligns with your strategy. Retiring it clears space for a new primary asset.',
     pyre_cancel: 'Cancel',
+    pyre_confirm_prompt: 'TYPE TOOL NAME TO CONFIRM DECOMMISSION',
+    pyre_confirm_mismatch: 'NAME MISMATCH — ACTION LOCKED',
     pyre_ignite: '🔥 Retire Asset',
     pyre_progress_label: 'Retiring',
     pyre_complete: 'Retired. Capacity freed for new assets.',
@@ -654,6 +771,30 @@ const INDUSTRIAL: VernacularDictionary = {
     armory_empty_terminal: 'No assets yet. Start adding above.',
     armory_status_label: 'assets',
     armory_proceed: 'Proceed to Performance Audit →',
+    armory_cap_locked: '[ CAPACITY REACHED ] — ASSET LIBRARY FULL',
+    armory_cap_locked_detail: 'Maximum {cap} assets allowed. Retire assets before adding new ones.',
+    armory_cap_input_blocked: 'Library full — retire assets first',
+    warden_intercept_blocked: 'QUALITY CHECK FAILED — SUBMISSION BLOCKED',
+    warden_intercept_warning: 'Generic language detected. Revise before submitting.',
+    cremate_toggle: 'RESET PROFILE',
+    cremate_title: 'FULL PROFILE RESET',
+    cremate_warning: 'This will permanently delete your profile, assets, and all session data. You will restart from the beginning.',
+    cremate_confirm_prompt: 'Type {word} to confirm reset',
+    cremate_button: 'RESET EVERYTHING',
+    xp_phoenix_reborn: 'Profile reset complete — fresh start bonus',
+    degraded_banner: 'RE-EVALUATION NEEDED',
+    degraded_detail: 'Extended inactivity detected. Please re-complete your assessment.',
+    interrogation_title: 'KNOWLEDGE CHECK',
+    interrogation_placeholder: 'Be specific — use real examples from your work.',
+    interrogation_xp: '40',
+    xp_interrogation: 'Knowledge check passed — application verified',
+    scaffold_title: 'PHASE OVERVIEW',
+    scaffold_success_signal: 'SUCCESS CRITERIA',
+    scaffold_proceed: 'Got it. Proceed.',
+    simulation_title: 'PRACTICE SIMULATION',
+    simulation_placeholder: 'Write your response using specific details from your experience.',
+    simulation_exit: 'Exit',
+    simulation_complete: 'Simulation Complete',
 
     // Evidence Scoring
     scoring_subtitle: 'Score each asset against performance benchmarks.',
@@ -736,6 +877,15 @@ const PLAIN: VernacularDictionary = {
     xp_calibration: 'Profile Saved',
     xp_finalized: 'Plan Finalized',
     xp_burned: 'Skill Removed',
+    xp_armory_item: 'Skill Added',
+    xp_compressed: 'Skill Refined',
+    xp_scored: 'Skill Verified',
+    xp_locked: 'Skill Selected',
+    xp_theory: 'Strategy Created',
+    xp_ritual_entry: 'Entry Logged',
+    ceremony_overline: 'NEW RANK',
+    ceremony_level: 'LEVEL',
+    ceremony_dismiss: 'CONTINUE',
 
     // Calibration
     calibration_title: 'About You',
@@ -817,12 +967,26 @@ const PLAIN: VernacularDictionary = {
     refine_cta_processing: 'UPDATING...',
     refine_footer: 'TetraTool Engine // Plan Editor',
 
+    // ── Tone Warden ──────────────────────────────────
+    warden_title: 'BRAND VOICE CHECK',
+    warden_subtitle: 'Check your writing voice.',
+    warden_input_label: 'YOUR DRAFT',
+    warden_input_placeholder: 'Paste what you wrote to check your voice...',
+    warden_analyze_cta: 'CHECK VOICE',
+    warden_analyzing: 'CHECKING...',
+    warden_score_label: 'VOICE SCORE',
+    warden_rewrite_label: 'SUGGESTED REWRITE',
+    warden_copy_cta: 'COPY TEXT',
+    warden_drift_label: 'ISSUES FOUND',
+
     // Pyre
     pyre_title: 'Remove Skill',
     pyre_subtitle: 'Skill Removal',
     pyre_target_label: 'Skill to Remove',
     pyre_description: 'This skill no longer fits your goals. Removing it clears space for something better. This action is permanent.',
     pyre_cancel: 'Cancel',
+    pyre_confirm_prompt: 'Type the skill name to confirm removal',
+    pyre_confirm_mismatch: 'Name does not match — button locked',
     pyre_ignite: '🔥 Remove Skill',
     pyre_progress_label: 'Removing',
     pyre_complete: 'Removed. Space cleared for new skills.',
@@ -875,6 +1039,30 @@ const PLAIN: VernacularDictionary = {
     armory_empty_terminal: 'No skills yet. Start adding above.',
     armory_status_label: 'skills',
     armory_proceed: 'Next Step →',
+    armory_cap_locked: 'Skill limit reached',
+    armory_cap_locked_detail: 'You can have up to {cap} skills. Remove some before adding new ones.',
+    armory_cap_input_blocked: 'Limit reached — remove skills first',
+    warden_intercept_blocked: 'Content needs revision',
+    warden_intercept_warning: 'Some phrases could be more specific. Please revise.',
+    cremate_toggle: 'Start over',
+    cremate_title: 'Start Fresh',
+    cremate_warning: 'This will delete all your data and start from scratch. You cannot undo this.',
+    cremate_confirm_prompt: 'Type {word} to confirm',
+    cremate_button: 'DELETE AND START OVER',
+    xp_phoenix_reborn: 'Fresh start bonus!',
+    degraded_banner: 'Time to check in again',
+    degraded_detail: "It's been a while! Let's redo your setup to make sure everything is up to date.",
+    interrogation_title: 'Quick Challenge',
+    interrogation_placeholder: 'Share a real example and explain your thinking...',
+    interrogation_xp: '40',
+    xp_interrogation: 'Challenge completed — great job!',
+    scaffold_title: "What's Coming Up",
+    scaffold_success_signal: 'What Success Looks Like',
+    scaffold_proceed: 'Ready!',
+    simulation_title: 'Practice Round',
+    simulation_placeholder: 'Share your response here...',
+    simulation_exit: 'Exit',
+    simulation_complete: 'Nice work!',
 
     // Evidence Scoring
     scoring_subtitle: 'Rate how strong each skill really is. Be honest.',

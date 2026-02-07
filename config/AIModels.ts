@@ -50,4 +50,5 @@ export const THINKING_BUDGETS = {
     challengeScore: 8000,       // adversarial score validation
     starterDeck: 4096,          // generateStarterDeck — archetype-based suggestions
     pilotProtocol: 8000,        // generatePilotProtocol
+    signalFidelity: 4096,       // analyzeSignalFidelity — tone drift scanning
 };

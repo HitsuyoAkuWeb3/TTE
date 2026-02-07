@@ -33,6 +33,11 @@ export const XP_AWARDS = {
     STREAK_7: 100,
     STREAK_14: 250,
     STREAK_30: 500,
+    TOOL_BURNED: 100,
+    PHOENIX_REBORN: 1000,
+    INTERROGATION_PASSED: 40,
+    INTERROGATION_PERFECT: 100,
+    SIMULATION_PASSED: 60,
 } as const;
 
 /** Get rank for a given XP total */
@@ -77,4 +82,56 @@ export function getStreakMilestone(streak: number): number | null {
     if (streak === 14) return XP_AWARDS.STREAK_14;
     if (streak === 30) return XP_AWARDS.STREAK_30;
     return null;
+}
+
+/** Autopoietic Spiral: each burn yields escalating XP.
+ *  Base 100, +50% per previous burn, capped at 1000.
+ *  Burn 1 = 100, Burn 2 = 150, Burn 3 = 225, Burn 4 = 337... */
+export function getSpiralBurnXp(burnCount: number): number {
+    const base = XP_AWARDS.TOOL_BURNED;
+    const multiplier = Math.pow(1.5, burnCount);
+    return Math.min(1000, Math.round(base * multiplier));
+}
+
+// ============================================================
+// COMMITMENT CONTRACTS — Streak Multiplier & Decay
+// ============================================================
+
+/** Streak multiplier tiers:
+ *  0 days  = 1.0x (baseline)
+ *  3 days  = 1.2x
+ *  7 days  = 1.5x
+ *  14 days = 1.8x
+ *  30 days = 2.0x (cap)
+ */
+const STREAK_MULTIPLIERS = [
+    { threshold: 30, multiplier: 2.0 },
+    { threshold: 14, multiplier: 1.8 },
+    { threshold: 7,  multiplier: 1.5 },
+    { threshold: 3,  multiplier: 1.2 },
+    { threshold: 0,  multiplier: 1.0 },
+];
+
+/** Get the XP multiplier based on current streak length */
+export function getCommitmentMultiplier(streak: number): number {
+    for (const tier of STREAK_MULTIPLIERS) {
+        if (streak >= tier.threshold) return tier.multiplier;
+    }
+    return 1.0;
+}
+
+/** Apply commitment multiplier to an XP award */
+export function applyCommitmentBonus(baseXp: number, streak: number): number {
+    return Math.round(baseXp * getCommitmentMultiplier(streak));
+}
+
+/** Calculate streak decay penalty — when a streak breaks,
+ *  the operator loses bonus XP from their last N earned awards.
+ *  Returns suggested XP penalty (0 if no streak was active). */
+export function getStreakDecayPenalty(previousStreak: number): number {
+    if (previousStreak < 3) return 0; // No penalty for short streaks
+    // Penalty = 10% of what the multiplier would have yielded
+    // on a standard session (approx 200 XP baseline)
+    const lostMultiplier = getCommitmentMultiplier(previousStreak) - 1.0;
+    return Math.round(200 * lostMultiplier * 0.5); // Half the bonus as penalty
 }

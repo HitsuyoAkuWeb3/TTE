@@ -15,7 +15,9 @@ import { apiFetch } from './services/apiClient';
 import { logger } from './services/logger';
 import { LoadingRitual, ProgressBar } from './components/Visuals';
 import { RankBadge, XpToast } from './components/RankBadge';
-import { XP_AWARDS } from './services/gamification';
+import { RankCeremony } from './components/RankCeremony';
+import { XP_AWARDS, getRank, getSpiralBurnXp, MythicRank } from './services/gamification';
+import { recordPhaseEntry, resetTelemetry } from './services/operatorTelemetry';
 import { useVernacular } from './contexts/VernacularContext';
 
 // Phase Components
@@ -31,6 +33,9 @@ import { ArchivePhase } from './components/phases/ArchivePhase';
 import { CalibrationPhase } from './components/phases/CalibrationPhase';
 import { RitualDashboard } from './components/phases/RitualDashboard';
 import { Pyre } from './components/phases/Pyre';
+import { DaemonWhisper } from './components/DaemonWhisper';
+import { InterrogationModal } from './components/InterrogationModal';
+import { PhaseScaffold } from './components/PhaseScaffold';
 
 
 export default function App() {
@@ -54,6 +59,9 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [xpToast, setXpToast] = useState<{ amount: number; reason: string } | null>(null);
   const [pyreTarget, setPyreTarget] = useState<ToolCandidate | null>(null);
+  const [ceremonyRank, setCeremonyRank] = useState<MythicRank | null>(null);
+  const [prevRankLevel, setPrevRankLevel] = useState(() => getRank(INITIAL_STATE.xp).level);
+  const [interrogation, setInterrogation] = useState<{ phase: Phase; context: Record<string, string> } | null>(null);
   const { v } = useVernacular();
 
   // XP award helper — updates state + shows toast
@@ -61,6 +69,15 @@ export default function App() {
     setState(s => ({ ...s, xp: s.xp + amount }));
     setXpToast({ amount, reason });
   }, []);
+
+  // Detect rank-up and trigger ceremony
+  React.useEffect(() => {
+    const currentRank = getRank(state.xp);
+    if (currentRank.level > prevRankLevel) {
+      setCeremonyRank(currentRank);
+    }
+    setPrevRankLevel(currentRank.level);
+  }, [state.xp, prevRankLevel]);
 
   // Sync auth user to state
   React.useEffect(() => {
@@ -104,6 +121,28 @@ export default function App() {
     })();
   }, [user]);
 
+  // Signal Fidelity Degradation: force re-calibration after 7 days of inactivity
+  const INACTIVITY_THRESHOLD_DAYS = 7;
+  React.useEffect(() => {
+    if (!state.lastActiveDate || state.accessDegraded) return;
+    const lastActive = new Date(state.lastActiveDate).getTime();
+    const now = Date.now();
+    const daysSinceActive = (now - lastActive) / (1000 * 60 * 60 * 24);
+    if (daysSinceActive >= INACTIVITY_THRESHOLD_DAYS) {
+      setState(s => ({ ...s, accessDegraded: true, currentPhase: Phase.CALIBRATION }));
+    }
+  }, [state.lastActiveDate, state.accessDegraded]);
+
+  // Student Model: track phase transitions for telemetry
+  React.useEffect(() => {
+    recordPhaseEntry(state.currentPhase);
+  }, [state.currentPhase]);
+
+  // Activity heartbeat: update lastActiveDate on phase transitions
+  const touchActivity = useCallback(() => {
+    setState(s => ({ ...s, lastActiveDate: new Date().toISOString(), accessDegraded: false }));
+  }, []);
+
   const handleCalibrationComplete = async (profile: OperatorProfile) => {
     if (!user) return;
     const profileId = state.profile?.id || crypto.randomUUID();
@@ -119,7 +158,26 @@ export default function App() {
     localStorage.setItem(`profile_${user.id}`, JSON.stringify(fullProfile));
     setState(s => ({ ...s, profile: fullProfile, currentPhase: Phase.INTRO }));
     awardXp(XP_AWARDS.CALIBRATION_COMPLETE, v.xp_calibration);
+    touchActivity(); // Re-calibration resets degradation
   };
+
+  // Dossier Cremation — P3 Phoenix Loop: full identity reset
+  const handleCremate = useCallback(() => {
+    // Award Phoenix XP BEFORE reset (so toast shows)
+    awardXp(XP_AWARDS.PHOENIX_REBORN, v.xp_phoenix_reborn);
+    // Clear persisted profile
+    if (user) {
+      try { localStorage.removeItem(`profile_${user.id}`); } catch { /* */ }
+    }
+    // Reset to INITIAL_STATE, preserving only auth
+    resetTelemetry(); // Clean telemetry for the reborn identity
+    setState(s => ({
+      ...INITIAL_STATE,
+      userId: s.userId,
+      xp: s.xp + XP_AWARDS.PHOENIX_REBORN, // preserve XP earned in final award
+      lastActiveDate: new Date().toISOString(),
+    }));
+  }, [awardXp, user, v.xp_phoenix_reborn]);
 
   const handleSave = async (currentState: SystemState) => {
     setIsSaving(true);
@@ -298,6 +356,7 @@ export default function App() {
                 quadrant: getQuadrant(x, y)
               };
               setState(s => ({ ...s, armory: [...s.armory, newItem] }));
+              awardXp(XP_AWARDS.ARMORY_ITEM_ADDED, v.xp_armory_item);
             }}
             onUpdateItem={handleUpdateItem}
             onNext={() => setState(s => ({ ...s, currentPhase: Phase.TOOL_COMPRESSION }))}
@@ -308,7 +367,10 @@ export default function App() {
         {state.currentPhase === Phase.TOOL_COMPRESSION && (
           <ToolCompressionPhase
             armory={state.armory}
-            onSelectCandidates={(candidates) => setState(s => ({ ...s, candidates }))}
+            onSelectCandidates={(candidates) => {
+              setState(s => ({ ...s, candidates }));
+              candidates.forEach(() => awardXp(XP_AWARDS.TOOL_COMPRESSED, v.xp_compressed));
+            }}
             onRemoveItems={(ids) => setState(s => ({
               ...s,
               armory: s.armory.filter(a => !ids.includes(a.id))
@@ -326,7 +388,10 @@ export default function App() {
           <EvidenceScoringPhase
             candidates={state.candidates}
             onUpdateCandidate={(candidates) => setState(s => ({ ...s, candidates }))}
-            onNext={() => setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }))}
+            onNext={() => {
+              state.candidates.forEach(() => awardXp(XP_AWARDS.EVIDENCE_SCORED, v.xp_scored));
+              setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }));
+            }}
             onBack={() => setState(s => ({ ...s, currentPhase: Phase.TOOL_COMPRESSION }))}
           />
         )}
@@ -334,7 +399,10 @@ export default function App() {
         {state.currentPhase === Phase.TOOL_LOCK && (
           <ToolLockPhase
             candidates={state.candidates}
-            onLock={(id) => setState(s => ({ ...s, selectedToolId: id, currentPhase: Phase.VALUE_SYNTHESIS }))}
+            onLock={(id) => {
+              setState(s => ({ ...s, selectedToolId: id, currentPhase: Phase.VALUE_SYNTHESIS }));
+              awardXp(XP_AWARDS.TOOL_LOCKED, v.xp_locked);
+            }}
             onBurn={(id) => setState(s => ({ ...s, candidates: s.candidates.filter(c => c.id !== id) }))}
             onBack={() => setState(s => ({ ...s, currentPhase: Phase.EVIDENCE_SCORING }))}
           />
@@ -344,7 +412,10 @@ export default function App() {
           <ValueChemistryPhase
             tool={state.candidates.find(c => c.id === state.selectedToolId)!}
             profile={state.profile}
-            onComplete={(tov) => setState(s => ({ ...s, theoryOfValue: tov, currentPhase: Phase.INSTALLATION }))}
+            onComplete={(tov) => {
+              setState(s => ({ ...s, theoryOfValue: tov, currentPhase: Phase.INSTALLATION }));
+              awardXp(XP_AWARDS.THEORY_SYNTHESIZED, v.xp_theory);
+            }}
             onBack={() => {
               if (state.pilotPlan) {
                 setState(s => ({ ...s, currentPhase: Phase.INSTALLATION }));
@@ -423,6 +494,8 @@ export default function App() {
             pilotPlan={state.pilotPlan}
             onBack={() => setState(s => ({ ...s, currentPhase: Phase.INSTALLATION }))}
             onReAudit={() => setState(s => ({ ...s, currentPhase: Phase.ARMORY_AUDIT }))}
+            onAwardXp={awardXp}
+            onCremate={handleCremate}
           />
         )}
       </main>
@@ -452,15 +525,58 @@ export default function App() {
         <Pyre
           tool={pyreTarget}
           onBurnComplete={(toolId) => {
+            const spiralXp = getSpiralBurnXp(state.burnCount);
             setState(s => ({
               ...s,
               candidates: s.candidates.filter(c => c.id !== toolId),
               selectedToolId: s.selectedToolId === toolId ? null : s.selectedToolId,
+              burnCount: s.burnCount + 1,
             }));
             setPyreTarget(null);
-            awardXp(100, v.xp_burned);
+            awardXp(spiralXp, v.xp_burned);
           }}
           onCancel={() => setPyreTarget(null)}
+        />
+      )}
+      {/* Rank Ceremony */}
+      {ceremonyRank && (
+        <RankCeremony
+          rank={ceremonyRank}
+          xp={state.xp}
+          onDismiss={() => setCeremonyRank(null)}
+        />
+      )}
+
+      {/* Phase Scaffold — JIT Knowledge Primer */}
+      {state.currentPhase && (
+        <PhaseScaffold
+          phase={state.currentPhase}
+          onProceed={() => { /* scaffold dismissed, phase continues */ }}
+        />
+      )}
+
+      {/* Daemon Whisper — Ambient Coaching Overlay */}
+      <DaemonWhisper
+        phase={state.currentPhase}
+        profile={state.profile}
+        toolName={state.candidates.find(c => c.id === state.selectedToolId)?.plainName}
+      />
+
+      {/* Active Interrogation Modal */}
+      {interrogation && state.profile && (
+        <InterrogationModal
+          phase={interrogation.phase}
+          profile={state.profile}
+          context={interrogation.context}
+          onPass={() => {
+            const isPerfect = true; // Will be refined when scoring data flows back
+            awardXp(
+              isPerfect ? XP_AWARDS.INTERROGATION_PERFECT : XP_AWARDS.INTERROGATION_PASSED,
+              v.xp_interrogation
+            );
+            setInterrogation(null);
+          }}
+          onDismiss={() => setInterrogation(null)}
         />
       )}
     </div>

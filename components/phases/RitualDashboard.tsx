@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ToolCandidate, TheoryOfValue, OperatorProfile } from '../../types';
 import { Button, SectionHeader } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { ToneWarden } from '../ToneWarden';
+import { calculateStreak, getStreakMilestone, XP_AWARDS } from '../../services/gamification';
 
 // ============================================================
 // RITUAL DASHBOARD — Post-Audit Daily Tracking
@@ -26,6 +28,8 @@ interface RitualDashboardProps {
     pilotPlan: string | null;
     onBack: () => void;
     onReAudit?: () => void;
+    onAwardXp?: (amount: number, reason: string) => void;
+    onCremate?: () => void;
 }
 
 const MOOD_CONFIG: Record<DailyEntry['mood'], { label: string; color: string; border: string }> = {
@@ -41,7 +45,9 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     profile,
     pilotPlan,
     onBack,
-    onReAudit
+    onReAudit,
+    onAwardXp,
+    onCremate
 }) => {
     // Load entries from localStorage
     const storageKey = `ritual_${tool?.id || 'default'}`;
@@ -53,6 +59,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     });
 
     const [showEntry, setShowEntry] = useState(false);
+    const [showWarden, setShowWarden] = useState(false);
     const { v } = useVernacular();
     const [newEntry, setNewEntry] = useState<DailyEntry>({
         date: new Date().toISOString().split('T')[0],
@@ -69,7 +76,20 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     }, [entries, storageKey]);
 
     const handleSubmitEntry = () => {
-        setEntries(prev => [newEntry, ...prev]);
+        const updatedEntries = [newEntry, ...entries];
+        setEntries(updatedEntries);
+
+        // Award RITUAL_ENTRY XP
+        onAwardXp?.(XP_AWARDS.RITUAL_ENTRY, v.xp_ritual_entry);
+
+        // Check for streak milestones
+        const dates = updatedEntries.map(e => e.date);
+        const newStreak = calculateStreak(dates);
+        const milestone = getStreakMilestone(newStreak);
+        if (milestone) {
+            onAwardXp?.(milestone, `${newStreak}-Day Streak`);
+        }
+
         setNewEntry({
             date: new Date().toISOString().split('T')[0],
             clientReached: 0,
@@ -85,19 +105,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     const totalRevenue = entries.reduce((sum, e) => sum + e.revenue, 0);
     const totalClients = entries.reduce((sum, e) => sum + e.clientReached, 0);
     const totalOffers = entries.reduce((sum, e) => sum + e.offersSent, 0);
-    const streak = (() => {
-        let s = 0;
-        const today = new Date();
-        for (let i = 0; i < entries.length; i++) {
-            const d = new Date(entries[i].date);
-            const expected = new Date(today);
-            expected.setDate(expected.getDate() - i);
-            if (d.toISOString().split('T')[0] === expected.toISOString().split('T')[0]) {
-                s++;
-            } else break;
-        }
-        return s;
-    })();
+    const streak = calculateStreak(entries.map(e => e.date));
 
     const hasEntryToday = entries.length > 0 && entries[0].date === new Date().toISOString().split('T')[0];
 
@@ -296,6 +304,96 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Tone Warden Launch */}
+            {theoryOfValue && profile && (
+                <button
+                    onClick={() => setShowWarden(true)}
+                    className="w-full p-5 border border-spirit/20 bg-spirit/5 text-spirit text-sm uppercase tracking-wider hover:border-spirit/50 hover:bg-spirit/10 transition-all font-mono flex items-center justify-center gap-3"
+                >
+                    <span className="text-lg">🔊</span>
+                    {v.warden_title}
+                    <span className="text-[9px] text-spirit/60">— {v.warden_subtitle}</span>
+                </button>
+            )}
+
+            {/* Tone Warden Modal */}
+            {showWarden && profile && theoryOfValue && (
+                <ToneWarden
+                    profile={profile}
+                    theoryOfValue={theoryOfValue}
+                    onClose={() => setShowWarden(false)}
+                />
+            )}
+
+            {/* Dossier Cremation — P3 Permadeath */}
+            {onCremate && (
+                <DossierCremation onCremate={onCremate} />
+            )}
+        </div>
+    );
+};
+
+// ── DOSSIER CREMATION COMPONENT ─────────────────────────
+const DossierCremation: React.FC<{ onCremate: () => void }> = ({ onCremate }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [confirmText, setConfirmText] = useState('');
+    const { v } = useVernacular();
+    const CONFIRM_WORD = 'CREMATE';
+    const isConfirmed = confirmText === CONFIRM_WORD;
+
+    return (
+        <div className="mt-12 border-t border-zinc-800 pt-8">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-[10px] font-mono text-zinc-700 hover:text-red-500 uppercase tracking-widest transition-colors"
+            >
+                {isOpen ? '▾' : '▸'} {v.cremate_toggle}
+            </button>
+
+            {isOpen && (
+                <div className="mt-4 p-6 border border-red-900/50 bg-gradient-to-b from-red-950/10 to-void space-y-4 animate-fade-in">
+                    <div className="text-xs font-mono text-red-400 uppercase tracking-wider font-bold">
+                        {v.cremate_title}
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-mono leading-relaxed">
+                        {v.cremate_warning}
+                    </p>
+
+                    <div className="space-y-2">
+                        <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">
+                            {v.cremate_confirm_prompt.replace('{word}', CONFIRM_WORD)}
+                        </label>
+                        <input
+                            type="text"
+                            value={confirmText}
+                            onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                            className={`w-full bg-zinc-900/50 border p-3 font-mono text-sm uppercase tracking-wider outline-none transition-all ${
+                                confirmText.length === 0
+                                    ? 'border-zinc-700 text-zinc-400'
+                                    : isConfirmed
+                                        ? 'border-red-600 text-red-400 shadow-[0_0_15px_rgba(220,38,38,0.3)]'
+                                        : 'border-yellow-700 text-yellow-500'
+                            }`}
+                            placeholder={CONFIRM_WORD}
+                            autoComplete="off"
+                            spellCheck={false}
+                        />
+                    </div>
+
+                    <button
+                        onClick={() => { if (isConfirmed) onCremate(); }}
+                        disabled={!isConfirmed}
+                        className={`w-full py-3 text-xs font-mono uppercase tracking-widest transition-all ${
+                            isConfirmed
+                                ? 'bg-red-600 text-white border border-red-500 hover:bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+                                : 'bg-zinc-900 text-zinc-700 border border-zinc-800 cursor-not-allowed'
+                        }`}
+                    >
+                        {v.cremate_button}
+                    </button>
                 </div>
             )}
         </div>

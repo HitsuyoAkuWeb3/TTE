@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality, LiveServerMessage } from "@google/genai";
-import { AIAnalysisResult, ToolCandidate, OperatorProfile, TheoryOfValue, SystemState } from "../types";
+import { AIAnalysisResult, ToolCandidate, OperatorProfile, TheoryOfValue, SystemState, SignalFidelityResult } from "../types";
 import { AI_MODELS, THINKING_BUDGETS } from "../config/AIModels";
 import { sanitizeInput } from './sanitizer';
 
@@ -1116,3 +1116,239 @@ export const suggestMerge = async (
     return [];
   }
 };
+
+// ============================================================
+// THE TONE WARDEN — Signal Fidelity Engine
+// ============================================================
+// Scans draft content against the locked OperatorProfile and
+// TheoryOfValue to detect "Signal Drift" — commodity jargon,
+// people-pleasing language, or hedge words that undermine
+// sovereign positioning.
+// ============================================================
+
+export const analyzeSignalFidelity = async (
+  draft: string,
+  profile: OperatorProfile,
+  theoryOfValue: TheoryOfValue
+): Promise<SignalFidelityResult> => {
+  const safeDraft = sanitizeInput(draft);
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      driftDetected: { type: Type.BOOLEAN, description: 'Whether any signal drift was found' },
+      driftItems: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            phrase: { type: Type.STRING, description: 'The exact phrase that drifts' },
+            reason: { type: Type.STRING, description: 'Why this phrase undermines sovereign positioning' },
+            severity: { type: Type.STRING, description: 'low, medium, or high' },
+          },
+          required: ['phrase', 'reason', 'severity'],
+        }
+      },
+      sovereignRewrite: { type: Type.STRING, description: 'The full draft rewritten with sovereign voice' },
+      fidelityScore: { type: Type.NUMBER, description: 'Signal fidelity score from 0 (total drift) to 100 (sovereign lock)' },
+    },
+    required: ['driftDetected', 'driftItems', 'sovereignRewrite', 'fidelityScore'],
+  };
+
+  const prompt = `You are THE TONE WARDEN — the Signal Fidelity Engine embedded in the TetraTool Engine.
+
+Your function: Scan outbound content for SIGNAL DRIFT. Signal Drift occurs when the Operator reverts
+to commodity language, people-pleasing hedging, or generic corporate jargon that contradicts their
+locked Sovereign identity.
+
+--- OPERATOR PROFILE ---
+Name: ${profile.name}
+Industry: ${profile.industry}
+Strategic Goal: ${profile.strategicGoal}
+Preferred Tone: ${profile.preferredTone}
+
+--- THEORY OF VALUE ---
+Fatal Wound (market pain): ${theoryOfValue.fatalWound}
+Sacred Cow (what others won't question): ${theoryOfValue.sacredCow}
+Molecular Bond (irreplaceable connection): ${theoryOfValue.molecularBond}
+Godfather Offer: ${theoryOfValue.godfatherOffer?.name || 'NOT SET'} — ${theoryOfValue.godfatherOffer?.transformation || ''}
+
+--- BANNED SIGNALS (always flag these) ---
+"Unlock", "Level up", "Game-changer", "Synergy", "Delve", "Leverage" (unless Industrial tone),
+"Strategic partner", "Solutions", "I'm so excited", "Amazing opportunity",
+"Consider", "Perhaps", "You might want to", "It depends"
+
+--- DRAFT TO ANALYZE ---
+${safeDraft}
+
+--- INSTRUCTIONS ---
+1. Identify every phrase that constitutes Signal Drift. For each, explain WHY it drifts and rate severity.
+2. Rewrite the ENTIRE draft in the Operator's Sovereign Voice — maintaining their locked tone (${profile.preferredTone}),
+   referencing their Fatal Wound and Molecular Bond naturally, and eliminating ALL drift.
+3. Score the ORIGINAL draft's fidelity from 0 (total commodity slop) to 100 (sovereign signal lock).
+   - 0-30: Tourist language. Complete drift.
+   - 31-60: Partial signal. Some sovereign fragments buried under hedge words.
+   - 61-80: Strong signal with minor drift.
+   - 81-100: Sovereign lock. Minimal or no drift detected.`;
+
+  try {
+    const response = await generateWithFallback({
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+      }
+    }, THINKING_BUDGETS.signalFidelity);
+
+    const result = JSON.parse(response.text || '{}');
+    return {
+      driftDetected: result.driftDetected ?? false,
+      driftItems: result.driftItems ?? [],
+      sovereignRewrite: result.sovereignRewrite ?? safeDraft,
+      fidelityScore: Math.max(0, Math.min(100, result.fidelityScore ?? 50)),
+    };
+  } catch (error) {
+    console.error('[TONE WARDEN] Analysis failed:', error);
+    return {
+      driftDetected: false,
+      driftItems: [],
+      sovereignRewrite: safeDraft,
+      fidelityScore: -1, // Indicates error
+    };
+  }
+};
+
+// ============================================================
+// THE DAEMON WHISPER — Pedagogical Coach Engine
+// ============================================================
+// Generates contextual coaching micro-prompts based on the
+// operator's current flow state. The Daemon adapts its tone:
+//   struggle → Socratic hint (never the answer)
+//   drift    → provocation to re-engage
+//   idle     → re-engagement nudge with XP incentive
+//   flow     → SILENT (never interrupt flow state)
+// ============================================================
+
+export type WhisperType = 'hint' | 'provocation' | 'nudge';
+
+export interface DaemonWhisperResult {
+    whisper: string;
+    type: WhisperType;
+}
+
+export async function generateWhisper(
+    phase: string,
+    flowState: 'struggle' | 'drift' | 'idle',
+    profile?: OperatorProfile | null,
+    toolName?: string,
+): Promise<DaemonWhisperResult> {
+    const typeMap: Record<string, WhisperType> = {
+        struggle: 'hint',
+        drift: 'provocation',
+        idle: 'nudge',
+    };
+
+    const toneDirective = flowState === 'struggle'
+        ? 'Be a Socratic coach. Ask ONE question that helps them think, never give the answer. Be warm but firm.'
+        : flowState === 'drift'
+            ? 'Be a provocateur. Challenge them with a single sharp question about why they stopped. No judgment, just friction.'
+            : 'Be a re-engagement agent. Remind them what they were building and what XP waits. One sentence, urgent but not pushy.';
+
+    const prompt = `You are the Sovereign Daemon's coaching whisper.
+The operator is in phase "${phase}"${toolName ? `, working on "${toolName}"` : ''}.
+Their current state: ${flowState.toUpperCase()}.
+${profile ? `Their industry: ${profile.industry}. Their goal: ${profile.strategicGoal}.` : ''}
+
+${toneDirective}
+
+Generate exactly ONE coaching micro-prompt. Maximum 20 words. No quotes, no labels, no preamble.
+Speak directly to the operator in second person.`;
+
+    try {
+        const result = await callGeminiProxy({
+            model: 'gemini-2.0-flash',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            systemInstruction: getSystemInstruction(profile?.preferredTone),
+        });
+
+        return {
+            whisper: result.text.trim().replace(/^["']|["']$/g, ''),
+            type: typeMap[flowState],
+        };
+    } catch (error) {
+        console.error('[DAEMON WHISPER] Generation failed:', error);
+        // Deterministic fallbacks
+        const fallbacks: Record<string, string> = {
+            struggle: 'What specifically is blocking you right now?',
+            drift: 'You stopped. Why?',
+            idle: 'Your dossier is waiting. One action forward.',
+        };
+        return {
+            whisper: fallbacks[flowState],
+            type: typeMap[flowState],
+        };
+    }
+}
+
+// ============================================================
+// ACTIVE INTERROGATION — Challenge & Scoring API
+// ============================================================
+
+export interface InterrogationScore {
+    specificity: number;
+    transfer: number;
+    feedback: string;
+}
+
+/** Generate a Socratic challenge question for a completed phase */
+export async function generateInterrogationChallenge(
+    prompt: string,
+    tone?: string,
+): Promise<string> {
+    try {
+        const result = await callGeminiProxy({
+            model: 'gemini-2.0-flash',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            systemInstruction: getSystemInstruction(tone),
+        });
+        return result.text.trim().replace(/^["']|["']$/g, '');
+    } catch {
+        return 'Explain in one sentence why your approach is irreplaceable.';
+    }
+}
+
+/** Score an operator's interrogation response on Specificity + Transfer */
+export async function scoreInterrogationResponse(
+    question: string,
+    answer: string,
+    tone?: string,
+): Promise<InterrogationScore> {
+    const scoringPrompt = `Challenge Question: ${question}
+
+Operator Response: ${answer}
+
+You are scoring an operator's response to a Socratic challenge.
+Rate TWO dimensions on a 0-5 scale:
+  - Specificity: How concrete, measurable, and non-generic is their answer? (0=vague platitude, 5=precise with numbers/names/dates)
+  - Transfer: Does the answer connect to real work, real clients, real outcomes? (0=theoretical, 5=proved with lived experience)
+
+Respond in JSON only:
+{"specificity": <0-5>, "transfer": <0-5>, "feedback": "<one sentence coaching feedback>"}`;
+
+    try {
+        const result = await callGeminiProxy({
+            model: 'gemini-2.0-flash',
+            contents: [{ role: 'user', parts: [{ text: scoringPrompt }] }],
+            systemInstruction: getSystemInstruction(tone),
+        });
+        const parsed = JSON.parse(result.text.replace(/```json\n?|\n?```/g, '').trim());
+        return {
+            specificity: Math.min(5, Math.max(0, parsed.specificity || 0)),
+            transfer: Math.min(5, Math.max(0, parsed.transfer || 0)),
+            feedback: parsed.feedback || 'No feedback generated.',
+        };
+    } catch {
+        return { specificity: 3, transfer: 3, feedback: 'Scoring unavailable — proceed.' };
+    }
+}
+

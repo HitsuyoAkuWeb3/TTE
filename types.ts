@@ -94,6 +94,14 @@ export interface TheoryOfValue {
   };
 }
 
+// ── Signal Fidelity (Tone Warden) ────────────────────────
+export interface SignalFidelityResult {
+    driftDetected: boolean;
+    driftItems: Array<{ phrase: string; reason: string; severity: 'low' | 'medium' | 'high' }>;
+    sovereignRewrite: string;
+    fidelityScore: number; // 0–100
+}
+
 export interface SystemState {
   id?: string;
   userId: string | null;
@@ -111,6 +119,10 @@ export interface SystemState {
   finalizedAt?: number;
   // Gamification
   xp: number;
+  burnCount: number;
+  // Signal Fidelity Degradation
+  lastActiveDate?: string; // ISO date string
+  accessDegraded?: boolean;
 }
 
 // Append-only snapshot for version history
@@ -138,4 +150,7 @@ export const INITIAL_STATE: SystemState = {
   finalized: false,
   version: 0,
   xp: 0,
+  burnCount: 0,
+  lastActiveDate: new Date().toISOString(),
+  accessDegraded: false,
 };

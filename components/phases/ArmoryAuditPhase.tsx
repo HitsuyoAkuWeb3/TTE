@@ -5,6 +5,8 @@ import { Button, Input, SectionHeader, ArmoryMap } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
 import { logger } from '../../services/logger';
 
+const ARMORY_HARD_CAP = 15;
+
 // Sovereign Primitives Data Structure (Polymath Merge v2026)
 const PRIMITIVES = [
     {
@@ -138,6 +140,7 @@ export const ArmoryAuditPhase: React.FC<{
     const [verb, setVerb] = useState('');
     const [isClassifying, setIsClassifying] = useState(false);
     const [viewMode, setViewMode] = useState<'spatial' | 'terminal'>('spatial');
+    const isAtCapacity = items.length >= ARMORY_HARD_CAP;
 
     // Deck of Sparks state
     const [starterDeck, setStarterDeck] = useState<StarterCard[]>([]);
@@ -167,7 +170,7 @@ export const ArmoryAuditPhase: React.FC<{
     }, [profile]);
 
     const processItem = async (text: string, contextDesc?: string) => {
-        if (!text.trim()) return;
+        if (!text.trim() || isAtCapacity) return;
         setIsClassifying(true);
         const query = contextDesc ? `${text}: ${contextDesc}` : text;
         const pos = await classifyActivity(query);
@@ -225,15 +228,32 @@ export const ArmoryAuditPhase: React.FC<{
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
+            {/* Hard Cap Lockout */}
+            {isAtCapacity && (
+                <div className="mb-6 p-4 border border-red-800 bg-red-900/10">
+                    <div className="flex items-center gap-3">
+                        <span className="text-red-400 text-lg">⛔</span>
+                        <div>
+                            <div className="text-xs font-mono text-red-400 uppercase tracking-wider font-bold">
+                                {v.armory_cap_locked}
+                            </div>
+                            <p className="text-[10px] text-zinc-400 mt-1 font-mono">
+                                {v.armory_cap_locked_detail.replace('{cap}', String(ARMORY_HARD_CAP))}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
                     {/* Manual Input */}
                     <form onSubmit={handleSubmit} className="flex gap-2">
                         <Input
                             value={verb}
                             onChange={(e) => setVerb(e.target.value)}
-                            placeholder="e.g., Edit copy, Design workflows"
-                            disabled={isClassifying}
+                            placeholder={isAtCapacity ? v.armory_cap_input_blocked : 'e.g., Edit copy, Design workflows'}
+                            disabled={isClassifying || isAtCapacity}
                         />
-                        <Button type="submit" disabled={isClassifying}>
+                        <Button type="submit" disabled={isClassifying || isAtCapacity}>
                             {isClassifying ? '...' : 'Add'}
                         </Button>
                     </form>
@@ -274,13 +294,14 @@ export const ArmoryAuditPhase: React.FC<{
                                         <div className="flex gap-1">
                                             <button
                                                 onClick={() => handleKeepCard(card)}
-                                                disabled={isClassifying}
+                                                disabled={isClassifying || isAtCapacity}
                                                 className="flex-1 text-[10px] font-mono py-1 bg-void border border-[#00FF41]/40 text-[#00FF41] hover:border-[#00FF41] hover:bg-[#00FF41]/10 transition-all disabled:opacity-50"
                                             >
                                                 KEEP
                                             </button>
                                             <button
                                                 onClick={() => handleDiscardCard(card)}
+                                                disabled={isAtCapacity}
                                                 className="flex-1 text-[10px] font-mono py-1 bg-void border border-zinc-800 text-zinc-500 hover:text-[#FF0000] hover:border-[#FF0000]/60 transition-all"
                                             >
                                                 BURN
@@ -307,7 +328,7 @@ export const ArmoryAuditPhase: React.FC<{
                                 <PrimitiveGroup
                                     key={group.cat}
                                     group={group}
-                                    isClassifying={isClassifying}
+                                    isClassifying={isClassifying || isAtCapacity}
                                     items={items}
                                     onProcess={processItem}
                                 />

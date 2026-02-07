@@ -17,6 +17,9 @@ const HEAT_COLORS = [
     'bg-red-600',         // 5 — maximum claim
 ];
 
+// Ludic Determinism: minimum average score to advance
+const MIN_EVIDENCE_SCORE = 3;
+
 const HEAT_GLOW = [
     '',
     '',
@@ -241,6 +244,13 @@ export const EvidenceScoringPhase: React.FC<{
         setChallengeContext(null);
     };
 
+    // Forensic stamp for individual candidate
+    const getCandidateVerdict = (c: ToolCandidate): { verified: boolean; avgScore: number } => {
+        const scores = [c.scores.unbiddenRequests, c.scores.frictionlessDoing, c.scores.resultEvidence];
+        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+        return { verified: avgScore >= MIN_EVIDENCE_SCORE, avgScore: Math.round(avgScore * 10) / 10 };
+    };
+
     const getValidationStatus = () => {
         for (const c of candidates) {
             const hasHighUnbidden = c.scores.unbiddenRequests >= 3;
@@ -256,6 +266,16 @@ export const EvidenceScoringPhase: React.FC<{
                 return { valid: false, reason: `Missing Evidence: Results for ${c.plainName} (scored ${c.scores.resultEvidence}/5)` };
             }
         }
+
+        // Ludic Determinism gate: all candidates must be VERIFIED
+        const unverified = candidates.filter(c => !getCandidateVerdict(c).verified);
+        if (unverified.length > 0) {
+            return {
+                valid: false,
+                reason: `[ INSUFFICIENT EVIDENCE ] ${unverified.map(c => c.plainName).join(', ')} — avg score below ${MIN_EVIDENCE_SCORE}/5. Signal unverified.`
+            };
+        }
+
         return { valid: true };
     };
 
@@ -286,17 +306,29 @@ export const EvidenceScoringPhase: React.FC<{
                 />
             )}
 
-            {/* Candidate Tabs */}
+            {/* Candidate Tabs with Forensic Stamps */}
             <div className="flex gap-2 mb-8 border-b border-zinc-800 overflow-x-auto">
-                {candidates.map((c, i) => (
-                    <button
-                        key={c.id}
-                        onClick={() => setActiveIndex(i)}
-                        className={getTabClassName(i === activeIndex, c.isSovereign)}
-                    >
-                        {c.plainName}
-                    </button>
-                ))}
+                {candidates.map((c, i) => {
+                    const verdict = getCandidateVerdict(c);
+                    return (
+                        <button
+                            key={c.id}
+                            onClick={() => setActiveIndex(i)}
+                            className={getTabClassName(i === activeIndex, c.isSovereign)}
+                        >
+                            <span className="flex items-center gap-2">
+                                {c.plainName}
+                                {(c.scores.unbiddenRequests + c.scores.frictionlessDoing + c.scores.resultEvidence) > 0 && (
+                                    <span className={`text-[8px] uppercase tracking-widest font-bold ${
+                                        verdict.verified ? 'text-spirit' : 'text-hazard'
+                                    }`}>
+                                        {verdict.verified ? '[ VERIFIED ]' : '[ UNVERIFIED ]'}
+                                    </span>
+                                )}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Challenging indicator */}
