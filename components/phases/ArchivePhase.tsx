@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SystemState, DossierSnapshot } from '../../types';
+import { SystemState, DossierSnapshot, Phase, ToolCandidate } from '../../types';
 import { Button } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
 import { apiFetch } from '../../services/apiClient';
@@ -10,8 +10,19 @@ interface ArchivePhaseProps {
     onNew: () => void;
 }
 
+interface SessionRecord {
+    id: string;
+    currentPhase: Phase;
+    selectedToolId: string | null;
+    candidates: ToolCandidate[];
+    clientName?: string;
+    updatedAt?: number;
+    version?: number;
+    finalized?: boolean;
+}
+
 export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, onNew }) => {
-    const [sessions, setSessions] = useState<any[]>([]);
+    const [sessions, setSessions] = useState<SessionRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const { v } = useVernacular();
@@ -25,7 +36,7 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
                 if (res.ok) {
                     const { sessions: apiSessions } = await res.json();
                     if (apiSessions?.length > 0) {
-                        setSessions(apiSessions.map((s: any) => ({ ...s.data, id: s.id })));
+                        setSessions(apiSessions.map((s: { id: string; data: Omit<SessionRecord, 'id'> }) => ({ ...s.data, id: s.id })));
                         setLoading(false);
                         return;
                     }

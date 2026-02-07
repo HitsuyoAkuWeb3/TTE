@@ -3,6 +3,7 @@ import { ArmoryItem, OperatorProfile } from '../../types';
 import { classifyActivity, generateStarterDeck, StarterCard } from '../../services/geminiService';
 import { Button, Input, SectionHeader, ArmoryMap } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { logger } from '../../services/logger';
 
 // Sovereign Primitives Data Structure (Polymath Merge v2026)
 const PRIMITIVES = [
@@ -155,7 +156,7 @@ export const ArmoryAuditPhase: React.FC<{
             generateStarterDeck(profile.industry, profile.preferredTone)
                 .then(cards => setStarterDeck(cards))
                 .catch(err => {
-                    console.error("Failed to generate deck:", err);
+                    logger.error('DECK', 'Failed to generate deck:', err);
                     generationRef.current = false; // Allow retry on error? Or keep blocked? 
                     // Keeping blocked to prevent loops is safer for "flashing" issues.
                     // But if it fails, user gets nothing. 

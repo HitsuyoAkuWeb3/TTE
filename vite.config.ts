@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       istanbul({
-        include: 'src/*',
+        include: '**/*',
         exclude: ['node_modules', 'tests/'],
         extension: ['.js', '.ts', '.tsx'],
         requireEnv: true,

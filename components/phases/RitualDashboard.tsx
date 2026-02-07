@@ -163,7 +163,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                             onClick={onReAudit}
                             className="text-[10px] font-mono px-4 py-2 border border-red-700 text-red-400 hover:bg-red-900/20 hover:text-red-300 transition-all uppercase tracking-wider"
                         >
-                            Re-Run Audit →
+                            {v.ritual_reaudit_button}
                         </button>
                     )}
                 </div>

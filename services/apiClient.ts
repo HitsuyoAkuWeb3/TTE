@@ -10,6 +10,8 @@
  *   HALF_OPEN → one probe request is allowed; success closes, failure re-opens
  */
 
+import { logger } from './logger';
+
 const COOLDOWN_MS = 30_000; // 30 seconds
 
 type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
@@ -20,7 +22,7 @@ let openedAt = 0;
 function trip() {
   circuitState = 'OPEN';
   openedAt = Date.now();
-  console.warn(`[apiClient] Circuit OPEN — backend unreachable. Suppressing requests for ${COOLDOWN_MS / 1000}s.`);
+  logger.warn('API_CLIENT', `Circuit OPEN — backend unreachable. Suppressing requests for ${COOLDOWN_MS / 1000}s.`);
 }
 
 function close() {

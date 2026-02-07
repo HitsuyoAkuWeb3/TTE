@@ -41,9 +41,10 @@ export const RankBadge: React.FC<RankBadgeProps> = ({ xp, compact = false }) => 
     }
 
     return (
-        <div
-            className="relative"
-            tabIndex={0}
+        <button
+            type="button"
+            className="relative appearance-none bg-transparent border-none p-0 cursor-default text-left"
+            aria-label={`${rank.name} rank badge — ${xp.toLocaleString()} XP`}
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onFocus={() => setShowTooltip(true)}
@@ -79,7 +80,7 @@ export const RankBadge: React.FC<RankBadgeProps> = ({ xp, compact = false }) => 
                     <div className="text-[9px] text-zinc-500 font-mono mt-1">{progress}% to next rank</div>
                 </div>
             )}
-        </div>
+        </button>
     );
 };
 

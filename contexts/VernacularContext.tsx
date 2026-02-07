@@ -13,7 +13,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type VernacularMode = 'mythic' | 'industrial' | 'plain';
 
-interface VernacularDictionary {
+export interface VernacularDictionary {
     // Phase names
     phase_armory: string;
     phase_scoring: string;
@@ -220,6 +220,24 @@ interface VernacularDictionary {
     scoring_proof_result: string;
     scoring_risk_explanation: string;
     scoring_proceed: string;
+
+    // ── Tool Compression Phase ────────────────────────
+    compression_sovereign_badge: string;
+    compression_sovereign_synthesizing: string;
+    compression_sovereign_button: string;
+    compression_compress_button: string;
+    compression_result_subtitle: string;
+    compression_result_title: string;
+    compression_proceed: string;
+    compression_select_subtitle: string;
+    compression_cap_warning: string;
+    compression_cap_explainer: string;
+    compression_analyzing_hint: string;
+    compression_select_title: string;
+    compression_merge_header: string;
+
+    // ── Ritual Dashboard ─────────────────────────────
+    ritual_reaudit_button: string;
 }
 
 const MYTHIC: VernacularDictionary = {
@@ -423,6 +441,24 @@ const MYTHIC: VernacularDictionary = {
     scoring_proof_result: 'Evidence Required — Paste Testimonial or Metric',
     scoring_risk_explanation: 'HIGH = You ARE the product (job). LOW = The product works without you (asset).',
     scoring_proceed: 'Audit Complete → Lock Tool',
+
+    // Tool Compression
+    compression_sovereign_badge: 'SOVEREIGN AUTHORITY',
+    compression_sovereign_synthesizing: 'Synthesizing Authority...',
+    compression_sovereign_button: 'Refine into One Sovereign Authority',
+    compression_compress_button: 'Compress into Market Function',
+    compression_result_subtitle: 'The Engine has compressed your skills into commercially viable functions.',
+    compression_result_title: 'Market Synthesis',
+    compression_proceed: 'Proceed to Evidence →',
+    compression_select_subtitle: 'Select 3 core activities. The AI will synthesize them into market roles.',
+    compression_cap_warning: '⚠ ARMORY OVERLOADED',
+    compression_cap_explainer: 'The 80/20 rule: your top 20% of skills generate 80% of value. Compress or delete until ≤ {cap}.',
+    compression_analyzing_hint: 'Applying 32k context reasoning to niche down...',
+    compression_select_title: 'Skill Selection',
+    compression_merge_header: 'Compression Recommendations',
+
+    // Ritual Dashboard
+    ritual_reaudit_button: 'Re-Run Audit →',
 };
 
 const INDUSTRIAL: VernacularDictionary = {
@@ -626,6 +662,24 @@ const INDUSTRIAL: VernacularDictionary = {
     scoring_proof_result: 'Evidence Required — Paste Case Study or Metric',
     scoring_risk_explanation: 'HIGH = Revenue requires your presence. LOW = Revenue persists without you.',
     scoring_proceed: 'Audit Complete → Select Asset',
+
+    // Tool Compression
+    compression_sovereign_badge: 'PRIMARY ASSET',
+    compression_sovereign_synthesizing: 'Consolidating Assets...',
+    compression_sovereign_button: 'Consolidate into Primary Asset',
+    compression_compress_button: 'Analyze Market Position',
+    compression_result_subtitle: 'Your skills have been mapped to commercially viable professional functions.',
+    compression_result_title: 'Market Analysis',
+    compression_proceed: 'Proceed to Validation →',
+    compression_select_subtitle: 'Select 3 key competencies. The system will map them to market functions.',
+    compression_cap_warning: '⚠ INVENTORY OVERLOADED',
+    compression_cap_explainer: 'The Pareto principle: 20% of your competencies generate 80% of value. Consolidate until ≤ {cap}.',
+    compression_analyzing_hint: 'Evaluating market positioning vectors...',
+    compression_select_title: 'Competency Selection',
+    compression_merge_header: 'Consolidation Recommendations',
+
+    // Ritual Dashboard
+    ritual_reaudit_button: 'Re-Run Assessment →',
 };
 
 const PLAIN: VernacularDictionary = {
@@ -829,6 +883,24 @@ const PLAIN: VernacularDictionary = {
     scoring_proof_result: 'Show proof — paste a testimonial or result',
     scoring_risk_explanation: 'HIGH = You have to do it yourself (a job). LOW = It works without you (an asset).',
     scoring_proceed: 'Done → Pick Your Best Skill',
+
+    // Tool Compression
+    compression_sovereign_badge: 'YOUR TOP SKILL',
+    compression_sovereign_synthesizing: 'Combining...',
+    compression_sovereign_button: 'Combine Into One Top Skill',
+    compression_compress_button: 'Analyze My Top Skills',
+    compression_result_subtitle: 'We turned your skills into roles you can sell.',
+    compression_result_title: 'Your Skills',
+    compression_proceed: 'Next Step →',
+    compression_select_subtitle: 'Choose 3 things you do best. We will figure out how to sell them.',
+    compression_cap_warning: '⚠ TOO MANY SKILLS',
+    compression_cap_explainer: 'Focus on the 20% of skills that create 80% of your value. Remove or merge until you have {cap} or fewer.',
+    compression_analyzing_hint: 'Finding the best way to package your skills...',
+    compression_select_title: 'Pick Your Top Skills',
+    compression_merge_header: 'Suggested Combinations',
+
+    // Ritual Dashboard
+    ritual_reaudit_button: 'Re-Run Audit →',
 };
 
 const DICTIONARIES: Record<VernacularMode, VernacularDictionary> = {

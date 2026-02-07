@@ -88,7 +88,7 @@ export function downloadRitualCalendar(toolName: string, startDate?: Date): void
             `DTSTART:${formatICSDate(eventStart)}`,
             `DTEND:${formatICSDate(eventEnd)}`,
             `SUMMARY:[TTE] Day ${ritual.day}: ${ritual.title}`,
-            `DESCRIPTION:${ritual.description.replace(/\n/g, '\\n')}\\n\\nSovereign Tool: ${toolName}`,
+            `DESCRIPTION:${ritual.description.replaceAll('\n', '\\n')}\\n\\nSovereign Tool: ${toolName}`,
             `CATEGORIES:TetraTool,Ritual Protocol`,
             'STATUS:CONFIRMED',
             `TRANSP:OPAQUE`,
@@ -117,9 +117,9 @@ export function downloadRitualCalendar(toolName: string, startDate?: Date): void
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `TTE_Ritual_Protocol_${toolName.replace(/\s+/g, '_')}.ics`;
+    link.download = `TTE_Ritual_Protocol_${toolName.replaceAll(/\s+/g, '_')}.ics`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
 }

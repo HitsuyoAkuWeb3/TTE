@@ -3,6 +3,7 @@ import { ToolCandidate } from '../../types';
 import { Button, SectionHeader } from '../Visuals';
 import { challengeScore, ChallengeResult } from '../../services/geminiService';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { logger } from '../../services/logger';
 
 // ============================================================
 // TACTILE SLIDER — The Weight of Truth
@@ -225,7 +226,7 @@ export const EvidenceScoringPhase: React.FC<{
                     markChallengeReceived();
                 }
             } catch (e) {
-                console.error('[CHALLENGER] Error:', e);
+                logger.error('CHALLENGER', 'Error:', e);
             } finally {
                 setIsChallengingScore(false);
             }

@@ -7,10 +7,12 @@ import {
   ArmoryItem,
   Quadrant,
   DossierSnapshot,
-  ToolCandidate
+  ToolCandidate,
+  OperatorProfile
 } from './types';
 import { generatePilotProtocol, updateCortex } from './services/geminiService';
 import { apiFetch } from './services/apiClient';
+import { logger } from './services/logger';
 import { LoadingRitual, ProgressBar } from './components/Visuals';
 import { RankBadge, XpToast } from './components/RankBadge';
 import { XP_AWARDS } from './services/gamification';
@@ -36,7 +38,7 @@ export default function App() {
   const { signOut } = useAuth();
   
   // DEV BYPASS: Allow E2E tests to simulate a logged-in user without Clerk keys
-  const isBypass = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('test_user') === 'true';
+  const isBypass = import.meta.env.DEV && globalThis.window !== undefined && new URLSearchParams(globalThis.location.search).get('test_user') === 'true';
 
   const user = React.useMemo(() => {
     if (isBypass) return { id: 'test_user', email: 'test@sovereign.local' };
@@ -44,7 +46,7 @@ export default function App() {
     return null;
   }, [isBypass, clerkUser]);
 
-  const isLoading = !clerkLoaded && !isBypass;
+
 
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -102,7 +104,7 @@ export default function App() {
     })();
   }, [user]);
 
-  const handleCalibrationComplete = async (profile: any) => {
+  const handleCalibrationComplete = async (profile: OperatorProfile) => {
     if (!user) return;
     const profileId = state.profile?.id || crypto.randomUUID();
     const fullProfile = { ...profile, id: profileId, userId: user.id };
@@ -122,13 +124,13 @@ export default function App() {
   const handleSave = async (currentState: SystemState) => {
     setIsSaving(true);
     if (!user) {
-      console.error("Save failed: No authenticated user");
+      logger.error('SAVE', 'No authenticated user');
       setIsSaving(false);
       return;
     }
 
     const sessionId = currentState.id || crypto.randomUUID();
-    console.log(`Processing session save: ${sessionId} for user: ${user.id}`);
+    logger.info('SAVE', `Processing session save: ${sessionId} for user: ${user.id}`);
 
     try {
       const saveData = {
@@ -158,10 +160,10 @@ export default function App() {
         index.push(sessionId);
         localStorage.setItem(indexKey, JSON.stringify(index));
       }
-      console.log("Save Successful");
+      logger.info('SAVE', 'Save successful');
       setState(s => ({ ...s, id: sessionId }));
     } catch (err: any) {
-      console.error("Save Failed:", err.message);
+      logger.error('SAVE', 'Save failed:', err.message);
     }
     setIsSaving(false);
   };

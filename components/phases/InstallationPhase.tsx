@@ -7,6 +7,7 @@ import { downloadRitualCalendar } from '../../services/calendarService';
 import { SimpleMarkdown } from '../SimpleMarkdown';
 import { RefinementTerminal } from '../RefinementTerminal';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { logger } from '../../services/logger';
 
 export const InstallationPhase: React.FC<{
     tool: ToolCandidate | null,
@@ -42,7 +43,7 @@ export const InstallationPhase: React.FC<{
             onUpdatePlan(newPlan);
             setShowRefiner(false);
         } catch (err) {
-            console.error("Refinement error", err);
+            logger.error('REFINEMENT', 'Refinement error', err);
             alert("Protocol synthesis failed.");
         } finally {
             setIsRefining(false);

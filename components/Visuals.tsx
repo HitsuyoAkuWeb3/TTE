@@ -132,6 +132,9 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
   return (
     <div
       className="w-full h-[600px] bg-void border-2 border-zinc-700 relative group"
+      role="application"
+      aria-roledescription="interactive chart"
+      aria-label="Armory quadrant map"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setActiveZone(null)}
     >

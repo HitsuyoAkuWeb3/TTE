@@ -38,10 +38,10 @@ export const sanitizeInput = (input: string): string => {
     }
 
     // Strip any HTML/XML tags
-    cleaned = cleaned.replace(/<[^>]*>/g, '');
+    cleaned = cleaned.replaceAll(/<[^>]*>/g, '');
 
     // Collapse multiple spaces
-    cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+    cleaned = cleaned.replaceAll(/\s{2,}/g, ' ').trim();
 
     return cleaned;
 };

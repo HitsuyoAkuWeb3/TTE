@@ -3,6 +3,7 @@ import { ToolCandidate, OperatorProfile, TheoryOfValue } from '../../types';
 import { conductMvaRadar, generateTheoryOfValue } from '../../services/geminiService';
 import { Button } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { logger } from '../../services/logger';
 
 interface ValueChemistryPhaseProps {
     tool: ToolCandidate;
@@ -25,7 +26,7 @@ export const ValueChemistryPhase: React.FC<ValueChemistryPhaseProps> = ({ tool, 
             setRadarData(data);
             setStatus('REVIEW');
         } catch (err: any) {
-            console.error("[CHEMISTRY_FAILURE]", err);
+            logger.error('CHEMISTRY', 'Value chemistry failure', err);
             alert(`Radar Scan Failed: ${err.message || "System Interference Detected"}. Check terminal logs.`);
             setStatus('IDLE');
         }
@@ -44,7 +45,7 @@ export const ValueChemistryPhase: React.FC<ValueChemistryPhaseProps> = ({ tool, 
             setTov(finalTov);
             onComplete(finalTov);
         } catch (err) {
-            console.error(err);
+            logger.error('CHEMISTRY', 'MVA Radar error', err);
             alert("ToV Synthesis Failed.");
             setStatus('REVIEW');
         }
