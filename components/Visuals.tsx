@@ -8,9 +8,9 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
   const baseStyle = "font-mono text-sm px-6 py-3 uppercase tracking-wider transition-all duration-200 border disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
     primary: "bg-zinc-100 text-black border-zinc-100 hover:bg-transparent hover:text-white",
-    secondary: "bg-transparent text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white",
+    secondary: "bg-transparent text-zinc-300 border-zinc-800 hover:border-zinc-500 hover:text-white",
     danger: "bg-red-900/20 text-red-500 border-red-900 hover:bg-red-900/40",
-    gold: "bg-yellow-600/20 text-yellow-500 border-yellow-600 hover:bg-yellow-600/40"
+    gold: "bg-[#00FF41]/10 text-[#00FF41] border-[#00FF41] hover:bg-[#00FF41]/20"
   };
 
   return (
@@ -46,7 +46,7 @@ interface ArmoryMapProps {
 export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
   // Quadrant background labels
   const CustomBackground = () => (
-    <g className="opacity-20 pointer-events-none select-none font-black text-4xl uppercase">
+    <g className="opacity-30 pointer-events-none select-none font-black text-4xl uppercase">
       <text x="25%" y="25%" textAnchor="middle" fill="#fff">Craft</text>
       <text x="75%" y="25%" textAnchor="middle" fill="#fff">Ritual</text>
       <text x="25%" y="75%" textAnchor="middle" fill="#fff">Sandbox</text>

@@ -9,11 +9,11 @@ export const ToolLockPhase: React.FC<{
 }> = ({ candidates, onLock, onBack }) => {
     const getScore = (c: ToolCandidate) => {
         let score = 0;
-        if (c.scores.unbiddenRequests) score += 2;
-        if (c.scores.frictionlessDoing) score += 1;
-        if (c.scores.resultEvidence) score += 2;
-        if (c.scores.extractionRisk) score -= 1;
-        return score;
+        score += c.scores.unbiddenRequests;       // 0-5 → weighted directly
+        score += Math.round(c.scores.frictionlessDoing * 0.5); // 0-5 → half weight
+        score += c.scores.resultEvidence;          // 0-5 → weighted directly
+        score -= Math.round(c.scores.extractionRisk * 0.5);   // 0-5 → penalty
+        return Math.max(0, score);
     };
 
     const sorted = [...candidates].sort((a, b) => getScore(b) - getScore(a));

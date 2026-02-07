@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ToolCandidate, OperatorProfile, TheoryOfValue } from '../../types';
+import { ToolCandidate, OperatorProfile, TheoryOfValue, Phase } from '../../types';
 import { generateAudioDossier, pcmToAudioBuffer, validateMarketWithSearch, connectLiveSession, disconnectLiveSession, refinePilotProtocol } from '../../services/geminiService';
 import { Button } from '../Visuals';
+import { pdfService } from '../../services/pdfService';
 import { SimpleMarkdown } from '../SimpleMarkdown';
 import { RefinementTerminal } from '../RefinementTerminal';
 
@@ -16,9 +17,13 @@ export const InstallationPhase: React.FC<{
     onBack: () => void,
     onSave: () => void,
     onRetroactiveAudit?: () => void,
+    onFinalize?: () => void,
+    onForkVersion?: () => void,
     isGenerating: boolean,
-    isSaving: boolean
-}> = ({ tool, plan, clientName, profile, theoryOfValue, onGeneratePlan, onUpdatePlan, onBack, onSave, onRetroactiveAudit, isGenerating, isSaving }) => {
+    isSaving: boolean,
+    isFinalized?: boolean,
+    version?: number
+}> = ({ tool, plan, clientName, profile, theoryOfValue, onGeneratePlan, onUpdatePlan, onBack, onSave, onRetroactiveAudit, onFinalize, onForkVersion, isGenerating, isSaving, isFinalized, version }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [validating, setValidating] = useState(false);
     const [liveConnected, setLiveConnected] = useState(false);
@@ -97,10 +102,10 @@ export const InstallationPhase: React.FC<{
     return (
         <div className="max-w-4xl mx-auto w-full animate-fade-in pb-20">
             <div className={`border p-8 bg-black relative overflow-hidden
-           ${tool.isSovereign ? 'border-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.1)]' : 'border-white'}
+            ${tool.isSovereign ? 'border-[#00FF41] shadow-[0_0_20px_rgba(0,255,65,0.1)]' : 'border-white'}
        `}>
                 <div className={`absolute top-0 right-0 p-2 text-black font-mono text-xs font-bold
-             ${tool.isSovereign ? 'bg-yellow-500' : 'bg-white'}
+             ${tool.isSovereign ? 'bg-[#00FF41]' : 'bg-white'}
          `}>
                     {tool.isSovereign ? 'SOVEREIGN DOSSIER' : 'OFFICIAL DOSSIER'}
                 </div>
@@ -108,13 +113,13 @@ export const InstallationPhase: React.FC<{
                 {!theoryOfValue && (
                     <div className="absolute top-0 left-0 w-full bg-[#FF2A2A] text-black px-4 py-1.5 flex justify-between items-center z-10">
                         <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                            <span className="animate-pulse underline">CRITICAL_GAP</span> :: THEORY_OF_VALUE_NOT_DETECTED
+                            <span className="animate-pulse underline">CRITICAL GAP</span> :: THEORY OF VALUE NOT DETECTED
                         </span>
                         <button
                             onClick={onRetroactiveAudit}
                             className="bg-black text-[#FF2A2A] text-[9px] font-bold px-3 py-0.5 hover:bg-zinc-900 transition-colors uppercase border border-black"
                         >
-                            RUN_FORENSIC_UPGRADE
+                            RUN FORENSIC UPGRADE
                         </button>
                     </div>
                 )}
@@ -131,17 +136,17 @@ export const InstallationPhase: React.FC<{
                         <h4 className="text-xs uppercase text-zinc-500 mb-2">Proof Ledger</h4>
                         <ul className="text-sm font-mono space-y-2">
                             <li className="flex items-center gap-2">
-                                <span className={tool.scores.unbiddenRequests ? "text-green-500" : "text-red-500"}>●</span> Unbidden Demand
+                                <span className={tool.scores.unbiddenRequests >= 3 ? "text-green-500" : "text-red-500"}>●</span> Unbidden Demand
                             </li>
                             <li className="flex items-center gap-2">
-                                <span className={tool.scores.frictionlessDoing ? "text-green-500" : "text-red-500"}>●</span> Frictionless
+                                <span className={tool.scores.frictionlessDoing >= 3 ? "text-green-500" : "text-red-500"}>●</span> Frictionless
                             </li>
                         </ul>
                     </div>
                     <div>
                         <h4 className="text-xs uppercase text-zinc-500 mb-2">Market Status</h4>
                         <div className="text-sm font-mono mb-2">
-                            {tool.scores.extractionRisk
+                            {tool.scores.extractionRisk >= 3
                                 ? <span className="text-red-500 font-bold bg-red-900/20 px-2 py-1">CONTAINMENT REQ</span>
                                 : <span className="text-green-500 font-bold bg-green-900/20 px-2 py-1">SCALABLE ASSET</span>
                             }
@@ -173,27 +178,27 @@ export const InstallationPhase: React.FC<{
                     <div className="animate-fade-in border-t border-zinc-800 pt-6">
                         {theoryOfValue && (
                             <div className="mb-12 border border-white/20 bg-zinc-950 p-8 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-                                <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.3em] mb-4">Forensic_Theory_of_Value_v.1</div>
+                                <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.3em] mb-4">Forensic Theory of Value v.1</div>
                                 <h3 className="text-3xl font-black mb-6 uppercase tracking-tight">{theoryOfValue.godfatherOffer.name}</h3>
 
                                 <div className="grid md:grid-cols-3 gap-8 mb-8 border-y border-zinc-900 py-8">
                                     <div>
-                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Molecular_Bond</h4>
+                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Molecular Bond</h4>
                                         <p className="text-sm font-mono leading-relaxed">{theoryOfValue.molecularBond}</p>
                                     </div>
                                     <div>
-                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Fatal_Wound_Audit</h4>
+                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Fatal Wound Audit</h4>
                                         <p className="text-sm font-mono text-red-500 italic">"{theoryOfValue.fatalWound}"</p>
                                     </div>
                                     <div>
-                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Strategic_Price</h4>
+                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Strategic Price</h4>
                                         <p className="text-2xl font-black">{theoryOfValue.godfatherOffer.price}</p>
                                         <p className="text-[9px] text-zinc-600 uppercase">Value-Based Transform</p>
                                     </div>
                                 </div>
 
                                 <div className="p-4 bg-zinc-900/50 border-l border-white font-mono text-xs text-zinc-400">
-                                    <h4 className="text-white text-[10px] uppercase mb-2">The_Magick_Pill_Promise</h4>
+                                    <h4 className="text-white text-[10px] uppercase mb-2">The Magick Pill Promise</h4>
                                     {theoryOfValue.godfatherOffer.transformation}
                                 </div>
                             </div>
@@ -208,15 +213,66 @@ export const InstallationPhase: React.FC<{
                         <div className="font-mono text-sm leading-relaxed text-zinc-300 bg-zinc-900/50 p-6 border-l-2 border-white max-h-[500px] overflow-y-auto">
                             <SimpleMarkdown text={plan} />
                         </div>
-                        <div className="mt-8 pt-6 border-t border-zinc-800 flex justify-end">
-                            <Button
-                                onClick={onSave}
-                                disabled={isSaving}
-                                variant="gold"
-                                className="w-full md:w-auto"
-                            >
-                                {isSaving ? 'Synching with Neural Link...' : 'Commit Protocol to System'}
-                            </Button>
+                        <div className="mt-8 pt-6 border-t border-zinc-800 flex justify-end gap-4">
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    onClick={() => {
+                                        const state: any = {
+                                            candidates: [tool],
+                                            selectedToolId: tool.id,
+                                            theoryOfValue: theoryOfValue || null,
+                                            pilotPlan: plan,
+                                            profile: profile || null,
+                                            currentPhase: Phase.INSTALLATION,
+                                            clientName: clientName || 'Client'
+                                        };
+                                        if (version) state.version = version;
+                                        pdfService.generateDossierPDF(state);
+                                    }}
+                                    variant="secondary"
+                                >
+                                    Download Dossier (PDF)
+                                </Button>
+
+                                {isFinalized ? (
+                                    <>
+                                        <div className="flex items-center gap-2 px-4 py-2 border border-emerald-800 bg-emerald-950/20">
+                                            <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">
+                                                ✓ FINALIZED — v{version || 1} • {new Date().toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        {onForkVersion && (
+                                            <Button
+                                                onClick={onForkVersion}
+                                                variant="secondary"
+                                                className="w-full md:w-auto"
+                                            >
+                                                Fork → v{(version || 1) + 1}
+                                            </Button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button
+                                            onClick={onSave}
+                                            disabled={isSaving}
+                                            variant="gold"
+                                            className="w-full md:w-auto"
+                                        >
+                                            {isSaving ? 'Synching with Neural Link...' : 'Commit Protocol to System'}
+                                        </Button>
+                                        {onFinalize && (
+                                            <Button
+                                                onClick={onFinalize}
+                                                disabled={isSaving}
+                                                className="w-full md:w-auto bg-emerald-900/30 border-emerald-700 text-emerald-400 hover:bg-emerald-900/50 text-[10px] uppercase tracking-wider"
+                                            >
+                                                ⬡ Finalize Dossier
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -224,13 +280,25 @@ export const InstallationPhase: React.FC<{
 
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 {plan && (
-                    <Button
-                        onClick={() => setShowRefiner(true)}
-                        variant="secondary"
-                        className="border-zinc-700 text-zinc-400 hover:text-white hover:border-white"
-                    >
-                        ITERATE_PROTOCOL [ AI_REFINEMENT ]
-                    </Button>
+                    <>
+                        <Button
+                            onClick={() => {
+                                navigator.clipboard.writeText(plan);
+                                alert("Protocol copied to clipboard (Markdown format).");
+                            }}
+                            variant="secondary"
+                            className="border-zinc-700 text-zinc-400 hover:text-white hover:border-white"
+                        >
+                            [ COPY PROTOCOL MD ]
+                        </Button>
+                        <Button
+                            onClick={() => setShowRefiner(true)}
+                            variant="secondary"
+                            className="border-zinc-700 text-zinc-400 hover:text-white hover:border-white"
+                        >
+                            ITERATE PROTOCOL [ AI REFINEMENT ]
+                        </Button>
+                    </>
                 )}
                 <Button
                     disabled

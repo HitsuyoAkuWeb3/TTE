@@ -8,6 +8,7 @@ export enum Phase {
   TOOL_LOCK = 'TOOL_LOCK',
   VALUE_SYNTHESIS = 'VALUE_SYNTHESIS',
   INSTALLATION = 'INSTALLATION',
+  RITUAL_DASHBOARD = 'RITUAL_DASHBOARD',
 }
 
 export enum Quadrant {
@@ -35,16 +36,41 @@ export interface ToolCandidate {
   isSovereign?: boolean; // If this is a synthesized authority
   marketValidation?: string[]; // URLs from search grounding
   scores: {
-    unbiddenRequests: boolean;
-    frictionlessDoing: boolean;
-    resultEvidence: boolean;
-    extractionRisk: boolean; // TRUE means High Risk (Bad)
+    unbiddenRequests: number;    // 0-5 scale
+    frictionlessDoing: number;   // 0-5 scale
+    resultEvidence: number;      // 0-5 scale
+    extractionRisk: number;      // 0-5 scale (HIGH = bad)
   };
   proofs: {
     unbidden?: string; // Text or mock file name
     result?: string;
   };
+  challengeReceived?: boolean; // Prevents repeated adversarial prompts
 }
+
+// Verification Level: measures "Proof of Work" integrity
+// Level 1: Self-Reported (no proofs submitted)
+// Level 2: Partially Verified (some proofs, or scores without challenge survival)
+// Level 3: System-Verified (all proofs + scores ≥3 + challenge survived)
+export const getVerificationLevel = (c: ToolCandidate): 1 | 2 | 3 => {
+  const hasUnbiddenProof = !!c.proofs.unbidden && c.proofs.unbidden.length > 0;
+  const hasResultProof = !!c.proofs.result && c.proofs.result.length > 0;
+  const allScoresAboveThreshold =
+    c.scores.unbiddenRequests >= 3 &&
+    c.scores.frictionlessDoing >= 3 &&
+    c.scores.resultEvidence >= 3 &&
+    c.scores.extractionRisk <= 2;
+
+  if (hasUnbiddenProof && hasResultProof && allScoresAboveThreshold) return 3;
+  if (hasUnbiddenProof || hasResultProof) return 2;
+  return 1;
+};
+
+export const VERIFICATION_LABELS: Record<1 | 2 | 3, string> = {
+  1: 'UNVERIFIED — SELF-REPORTED',
+  2: 'PARTIAL — EVIDENCE SUBMITTED',
+  3: 'VERIFIED — AUDIT PASSED',
+};
 
 export interface OperatorProfile {
   name: string;
@@ -79,6 +105,17 @@ export interface SystemState {
   clientName?: string;
   profile?: OperatorProfile | null;
   theoryOfValue?: TheoryOfValue | null;
+  // Draft-Commit Pattern
+  finalized?: boolean;
+  version?: number;
+  finalizedAt?: number;
+}
+
+// Append-only snapshot for version history
+export interface DossierSnapshot {
+  version: number;
+  finalizedAt: number;
+  state: SystemState;
 }
 
 export interface AIAnalysisResult {
@@ -96,4 +133,6 @@ export const INITIAL_STATE: SystemState = {
   selectedToolId: null,
   pilotPlan: null,
   theoryOfValue: null,
+  finalized: false,
+  version: 0,
 };
