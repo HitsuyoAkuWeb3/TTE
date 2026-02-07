@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } from 'recharts';
 import { ArmoryItem, Quadrant } from '../types';
+import { useVernacular } from '../contexts/VernacularContext';
 
 export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'gold' }> = ({
   children, variant = 'primary', className = '', ...props
@@ -44,13 +45,16 @@ interface ArmoryMapProps {
 }
 
 export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
-  // Quadrant background labels
+  const { v, mode } = useVernacular();
+
+
+  // Quadrant background labels — pulled from vernacular dictionary
   const CustomBackground = () => (
     <g className="opacity-30 pointer-events-none select-none font-black text-4xl uppercase">
-      <text x="25%" y="25%" textAnchor="middle" fill="#fff">Craft</text>
-      <text x="75%" y="25%" textAnchor="middle" fill="#fff">Ritual</text>
-      <text x="25%" y="75%" textAnchor="middle" fill="#fff">Sandbox</text>
-      <text x="75%" y="75%" textAnchor="middle" fill="#fff">Mischief</text>
+      <text x="25%" y="25%" textAnchor="middle" fill="#fff">{v.quadrant_craft}</text>
+      <text x="75%" y="25%" textAnchor="middle" fill="#fff">{v.quadrant_ritual}</text>
+      <text x="25%" y="75%" textAnchor="middle" fill="#fff">{v.quadrant_sandbox}</text>
+      <text x="75%" y="75%" textAnchor="middle" fill="#fff">{v.quadrant_mischief}</text>
     </g>
   );
 
@@ -58,24 +62,24 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
 
   const QUADRANT_INFO = {
     [Quadrant.CRAFT]: {
-      title: "The Builder",
-      desc: "You use discipline to construct lasting systems.",
-      examples: "Engineering, Writing Code, Architecture"
+      title: v.quadrant_craft_title,
+      desc: v.quadrant_craft_desc,
+      examples: v.quadrant_craft_examples
     },
     [Quadrant.RITUAL]: {
-      title: "The Critic",
-      desc: "You use discipline to audit or disrupt systems.",
-      examples: "Code Review, QA, Security Research"
+      title: v.quadrant_ritual_title,
+      desc: v.quadrant_ritual_desc,
+      examples: v.quadrant_ritual_examples
     },
     [Quadrant.SANDBOX]: {
-      title: "The Explorer",
-      desc: "You play to discover new patterns or ideas.",
-      examples: "Prototyping, Brainstorming, Sketching"
+      title: v.quadrant_sandbox_title,
+      desc: v.quadrant_sandbox_desc,
+      examples: v.quadrant_sandbox_examples
     },
     [Quadrant.MISCHIEF]: {
-      title: "The Hacker",
-      desc: "You play to break or exploit existing patterns.",
-      examples: "Pentesting, Pranks, guerrilla marketing"
+      title: v.quadrant_mischief_title,
+      desc: v.quadrant_mischief_desc,
+      examples: v.quadrant_mischief_examples
     }
   };
 
@@ -102,10 +106,10 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
       onMouseLeave={() => setActiveZone(null)}
     >
       {/* Axis Labels */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">INSTRUMENT (DISCIPLINE)</div>
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">TOY (DISCOVERY)</div>
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-mono text-zinc-500/50">TOOL (CONSTRUCTION)</div>
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-[10px] font-mono text-zinc-500/50">WEAPON (DISRUPTION)</div>
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">{v.axis_top}</div>
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">{v.axis_bottom}</div>
+      <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-mono text-zinc-500/50">{v.axis_left}</div>
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-[10px] font-mono text-zinc-500/50">{v.axis_right}</div>
 
       {/* Visual Feedback Layer (Pointer Events None) */}
       <div className="absolute inset-0 pointer-events-none z-0">

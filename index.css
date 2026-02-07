@@ -1,0 +1,78 @@
+/* ============================================================
+   VOID-ARCHITECT DESIGN LANGUAGE SYSTEM — Global Styles
+   ============================================================ */
+
+/* --- Base --- */
+body {
+  background-color: #050505;
+  color: #F5F5F0; /* bone */
+}
+
+/* --- Inverted Selection --- */
+::selection {
+  background-color: #F5F5F0;
+  color: #000000;
+}
+::-moz-selection {
+  background-color: #F5F5F0;
+  color: #000000;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* --- Display Font Class — for major headers only --- */
+.font-display {
+  font-family: 'Cinzel', 'Inter', serif;
+  letter-spacing: -0.03em;
+}
+
+/* --- Hard Shadow Utilities --- */
+.shadow-hard {
+  box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.08);
+}
+.shadow-hard-white {
+  box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 1);
+}
+.shadow-hard-hazard {
+  box-shadow: 4px 4px 0px 0px #FF3333;
+}
+.shadow-hard-spirit {
+  box-shadow: 3px 3px 0px 0px #00FFFF;
+}
+
+/* --- Noise Texture Overlay (optional on containers) --- */
+.bg-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* --- Animate: Shockwave (level-up pulse) --- */
+@keyframes shockwave {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 40px rgba(255, 255, 255, 0);
+  }
+}
+.animate-shockwave {
+  animation: shockwave 0.6s ease-out;
+}

@@ -8,9 +8,10 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 //
 // Setting A (Mythic):     "Toy / Weapon / Ritual"
 // Setting B (Industrial): "R&D / Disruptor / SOP"
+// Setting C (Plain):      "For Fun / Side Hustle / Daily Habit"
 // ============================================================
 
-export type VernacularMode = 'mythic' | 'industrial';
+export type VernacularMode = 'mythic' | 'industrial' | 'plain';
 
 interface VernacularDictionary {
     // Phase names
@@ -19,6 +20,9 @@ interface VernacularDictionary {
     phase_lock: string;
     phase_synthesis: string;
     phase_installation: string;
+    phase_calibration: string;
+    phase_archive: string;
+    ritual_dashboard: string;
 
     // Tool categories (Quadrant labels)
     quadrant_sandbox: string;
@@ -61,6 +65,139 @@ interface VernacularDictionary {
     status_fail: string;
     status_risk: string;
     status_asset: string;
+
+    // ── App Shell (menus, navigation) ──────────────────
+    menu_archive: string;
+    menu_calibrate: string;
+    menu_logout: string;
+    footer_archive_link: string;
+    xp_calibration: string;
+    xp_finalized: string;
+    xp_burned: string;
+
+    // ── Calibration Phase ──────────────────────────────
+    calibration_title: string;
+    calibration_subtitle: string;
+    label_name: string;
+    label_industry: string;
+    label_goal: string;
+    label_tone: string;
+    placeholder_name: string;
+    placeholder_industry: string;
+    placeholder_goal: string;
+    calibration_submit: string;
+    calibration_footer: string;
+
+    // ── Value Chemistry Phase ──────────────────────────
+    synthesis_title: string;
+    synthesis_subtitle: string;
+    synthesis_scan_ready: string;
+    synthesis_scan_cta: string;
+    synthesis_scanning: string;
+    synthesis_scanning_detail: string;
+    synthesis_shadow_title: string;
+    synthesis_complete: string;
+    synthesis_build_cta_prefix: string;
+    synthesis_forging: string;
+    synthesis_back: string;
+
+    // ── Installation Phase ────────────────────────────
+    dossier_badge_sovereign: string;
+    dossier_badge_official: string;
+    tov_summary_label: string;
+    tov_promise_label: string;
+    generate_plan: string;
+    generating_plan: string;
+    plan_title: string;
+    listen_idle: string;
+    listen_playing: string;
+    download_pdf: string;
+    export_calendar: string;
+    save_plan: string;
+    saving_plan: string;
+    finalize_dossier: string;
+
+    // ── Archive Phase ─────────────────────────────────
+    archive_title: string;
+    archive_subtitle: string;
+    archive_new_button: string;
+    archive_loading: string;
+    archive_empty: string;
+    archive_subject_label: string;
+    archive_footer: string;
+
+    // ── Ritual Dashboard ──────────────────────────────
+    ritual_subtitle: string;
+    ritual_active_weapon: string;
+    ritual_offer_label: string;
+    ritual_warning_title: string;
+    ritual_warning_detail: string;
+    ritual_log_button: string;
+    ritual_entry_title: string;
+    ritual_mood_label: string;
+    ritual_notes_label: string;
+    ritual_commit: string;
+    ritual_history_title: string;
+
+    // ── Auth Terminal ─────────────────────────────────
+    auth_title: string;
+    auth_subtitle: string;
+    auth_footer: string;
+
+    // ── Refinement Terminal ───────────────────────────
+    refine_title: string;
+    refine_subtitle: string;
+    refine_log_label: string;
+    refine_log_waiting: string;
+    refine_log_processing: string;
+    refine_input_label: string;
+    refine_cta: string;
+    refine_cta_processing: string;
+    refine_footer: string;
+
+    // ── Pyre (tool retirement) ────────────────────────
+    pyre_title: string;
+    pyre_subtitle: string;
+    pyre_target_label: string;
+    pyre_description: string;
+    pyre_cancel: string;
+    pyre_ignite: string;
+    pyre_progress_label: string;
+    pyre_complete: string;
+
+    // ── Axis labels (ArmoryMap) ───────────────────────
+    axis_top: string;
+    axis_bottom: string;
+    axis_left: string;
+    axis_right: string;
+
+    // ── ArmoryMap hover info ──────────────────────────
+    quadrant_craft_title: string;
+    quadrant_craft_desc: string;
+    quadrant_craft_examples: string;
+    quadrant_ritual_title: string;
+    quadrant_ritual_desc: string;
+    quadrant_ritual_examples: string;
+    quadrant_sandbox_title: string;
+    quadrant_sandbox_desc: string;
+    quadrant_sandbox_examples: string;
+    quadrant_mischief_title: string;
+    quadrant_mischief_desc: string;
+    quadrant_mischief_examples: string;
+
+    // ── Intro Phase ──────────────────────────────────
+    intro_headline_1: string;
+    intro_headline_2: string;
+    intro_headline_3: string;
+    intro_subtitle: string;
+    intro_input_label: string;
+    intro_placeholder: string;
+    intro_button: string;
+    intro_mode_label: string;
+
+    // ── Tool Lock Phase ──────────────────────────────
+    lock_phase_prefix: string;
+    lock_confirm: string;
 }
 
 const MYTHIC: VernacularDictionary = {
@@ -69,6 +206,9 @@ const MYTHIC: VernacularDictionary = {
     phase_lock: 'The Verdict',
     phase_synthesis: 'Value Chemistry',
     phase_installation: 'The Installation',
+    phase_calibration: 'Neural Calibration',
+    phase_archive: 'Dossier Archive',
+    ritual_dashboard: 'Ritual Dashboard',
 
     quadrant_sandbox: 'Sandbox',
     quadrant_mischief: 'Mischief',
@@ -80,14 +220,14 @@ const MYTHIC: VernacularDictionary = {
     score_evidence: 'Result Evidence',
     score_extraction: 'Extraction Risk',
 
-    sublabel_unbidden: 'Do people seek you out for this without prompting?',
-    sublabel_frictionless: 'Can you deliver in 30 mins with zero prep?',
-    sublabel_evidence: 'Do you have Case Studies or Testimonials?',
-    sublabel_extraction: 'If you stop, does it stop?',
+    sublabel_unbidden: 'Do clients request this without you marketing it?',
+    sublabel_frictionless: 'Can you deliver this in your sleep?',
+    sublabel_evidence: 'Do you have undeniable proof this generates revenue?',
+    sublabel_extraction: 'Does this revenue stop if you take a vacation?',
 
     tool_singular: 'Weapon',
     tool_plural: 'Weapons',
-    starting_tool: 'Starting Weapon',
+    starting_tool: 'Starting Tool',
     locked_tool: 'Locked Weapon',
     theory_of_value: 'Theory of Value',
     godfather_offer: 'Godfather Offer',
@@ -105,6 +245,139 @@ const MYTHIC: VernacularDictionary = {
     status_fail: 'REJECTED',
     status_risk: 'CONTAINMENT REQ',
     status_asset: 'SCALABLE ASSET',
+
+    // App Shell
+    menu_archive: '[ DOSSIER ARCHIVE ]',
+    menu_calibrate: '[ RE-CALIBRATE ]',
+    menu_logout: '[ TERMINATE LINK ]',
+    footer_archive_link: 'Access Existing Dossiers',
+    xp_calibration: 'Calibration Complete',
+    xp_finalized: 'Dossier Finalized',
+    xp_burned: 'Tool Burned — Space Cleared',
+
+    // Calibration
+    calibration_title: 'Neural Calibration System',
+    calibration_subtitle: 'Operator Profiling & Identity Ledger',
+    label_name: 'Operator Alias',
+    label_industry: 'Domain of Operation',
+    label_goal: 'Core Strategic Directive',
+    label_tone: 'Architectural Tone',
+    placeholder_name: 'e.g., ARCHITECT 01',
+    placeholder_industry: 'e.g., Enterprise Software / BioTech',
+    placeholder_goal: 'e.g., Automate client acquisition pipelines while maintaining high-ticket rarity.',
+    calibration_submit: 'Finalize Calibration',
+    calibration_footer: 'TetraTool // Profile Ledger Locked After Initialization',
+
+    // Value Chemistry
+    synthesis_title: 'Molecular Synthesis',
+    synthesis_subtitle: 'Identify the Root Glitch. Manufacture Certainty.',
+    synthesis_scan_ready: 'Ready to scan the MVA (Minimum Viable Audience) Radar for',
+    synthesis_scan_cta: 'INITIALIZE RADAR SCAN',
+    synthesis_scanning: '[ SCANNING NICHE FORUMS... ]',
+    synthesis_scanning_detail: 'Extracting Shadow Beliefs & Fatal Wound patterns',
+    synthesis_shadow_title: 'Shadow Belief Inventory',
+    synthesis_complete: 'Chemistry extracted. Ready for White Paper synthesis.',
+    synthesis_build_cta_prefix: 'ARCHITECT',
+    synthesis_forging: '[ THE FORGE IS ACTIVE ]',
+    synthesis_back: 'RETURN TO PREVIOUS PHASE',
+
+    // Installation
+    dossier_badge_sovereign: 'SOVEREIGN DOSSIER',
+    dossier_badge_official: 'OFFICIAL DOSSIER',
+    tov_summary_label: 'Forensic Theory of Value v.1',
+    tov_promise_label: 'The Magick Pill Promise',
+    generate_plan: 'Generate 7-Day Pilot Protocol',
+    generating_plan: 'Architecting Pilot...',
+    plan_title: '7-Day Installation Protocol',
+    listen_idle: 'Listen to Protocol',
+    listen_playing: 'Broadcasting...',
+    download_pdf: 'Download Dossier (PDF)',
+    export_calendar: '📅 Export 7-Day Protocol (.ics)',
+    save_plan: 'Commit Protocol to System',
+    saving_plan: 'Synching with Neural Link...',
+    finalize_dossier: '⬡ Finalize Dossier',
+
+    // Archive
+    archive_title: 'Dossier Archive',
+    archive_subtitle: 'Previously completed protocol sessions',
+    archive_new_button: '+ New Session',
+    archive_loading: 'Decrypting...',
+    archive_empty: 'No sessions found. Begin a new calibration to start.',
+    archive_subject_label: 'Subject',
+    archive_footer: 'TetraTool // Sovereign Architecture',
+
+    // Ritual Dashboard
+    ritual_subtitle: 'Daily execution tracking. The data does not lie.',
+    ritual_active_weapon: 'Active Weapon',
+    ritual_offer_label: 'Godfather Offer',
+    ritual_warning_title: '⚠ FALSE POSITIVE WARNING',
+    ritual_warning_detail: 'It has been {days} days since your last entry. Consistency is non-negotiable.',
+    ritual_log_button: 'Log Ritual',
+    ritual_entry_title: 'Today\'s Entry Logged',
+    ritual_mood_label: 'Mood',
+    ritual_notes_label: 'Field Notes',
+    ritual_commit: 'Commit Entry',
+    ritual_history_title: 'Ritual History',
+
+    // Auth
+    auth_title: 'NEURAL VAULT / AUTH',
+    auth_subtitle: 'Awaiting Verification Handshake',
+    auth_footer: 'TetraTool Engine // Enterprise Node',
+
+    // Refinement Terminal
+    refine_title: 'Protocol Patch Terminal',
+    refine_subtitle: 'Authorized Access: Senior Architect',
+    refine_log_label: '// System Log Active',
+    refine_log_waiting: '> Awaiting user optimization signals...',
+    refine_log_processing: '> RE-CALCULATING PROPORTIONS... [GEM-3-FLASH]',
+    refine_input_label: 'Input Optimization Feedback',
+    refine_cta: 'EXECUTE RE-SYNTHESIS',
+    refine_cta_processing: 'PROCESSING PATCH...',
+    refine_footer: 'TetraTool Engine // Live Refinement Node',
+
+    // Pyre
+    pyre_title: 'The Pyre',
+    pyre_subtitle: 'Tool Retirement Ceremony',
+    pyre_target_label: 'Weapon to Burn',
+    pyre_description: 'This tool no longer serves the mission. Burning it clears space for a new Starting Tool. This action archives the tool permanently.',
+    pyre_cancel: 'Stand Down',
+    pyre_ignite: '🔥 Ignite the Pyre',
+    pyre_progress_label: 'Burning',
+    pyre_complete: 'Archived. Space cleared for evolution.',
+
+    // Axis labels
+    axis_top: 'INSTRUMENT (DISCIPLINE)',
+    axis_bottom: 'TOY (DISCOVERY)',
+    axis_left: 'TOOL (CONSTRUCTION)',
+    axis_right: 'WEAPON (DISRUPTION)',
+
+    // Quadrant hover info
+    quadrant_craft_title: 'The Builder',
+    quadrant_craft_desc: 'You use discipline to construct lasting systems.',
+    quadrant_craft_examples: 'Engineering, Writing Code, Architecture',
+    quadrant_ritual_title: 'The Critic',
+    quadrant_ritual_desc: 'You use discipline to audit or disrupt systems.',
+    quadrant_ritual_examples: 'Code Review, QA, Security Research',
+    quadrant_sandbox_title: 'The Explorer',
+    quadrant_sandbox_desc: 'You play to discover new patterns or ideas.',
+    quadrant_sandbox_examples: 'Prototyping, Brainstorming, Sketching',
+    quadrant_mischief_title: 'The Hacker',
+    quadrant_mischief_desc: 'You play to break or exploit existing patterns.',
+    quadrant_mischief_examples: 'Pentesting, Pranks, guerrilla marketing',
+
+    // Intro Phase
+    intro_headline_1: 'Tetra',
+    intro_headline_2: 'Tool',
+    intro_headline_3: 'Engine',
+    intro_subtitle: 'POST-NEON DIAGNOSTIC ENGINE v2.0\n————————————————\nIdentify, validate, and install your unextractable Starting Tool.\nThis is not a quiz. It is an architecture protocol.',
+    intro_input_label: 'Subject Identification [Entity Name]',
+    intro_placeholder: 'Enter Client/Entity Name',
+    intro_button: 'Initialize System',
+    intro_mode_label: 'Interface Mode',
+
+    // Tool Lock
+    lock_phase_prefix: 'Phase 4:',
+    lock_confirm: 'Confirm',
 };
 
 const INDUSTRIAL: VernacularDictionary = {
@@ -113,6 +386,9 @@ const INDUSTRIAL: VernacularDictionary = {
     phase_lock: 'Selection Report',
     phase_synthesis: 'Market Analysis',
     phase_installation: 'Launch Protocol',
+    phase_calibration: 'Operator Setup',
+    phase_archive: 'Report Archive',
+    ritual_dashboard: 'Operations Dashboard',
 
     quadrant_sandbox: 'R&D',
     quadrant_mischief: 'Disruptor',
@@ -149,11 +425,325 @@ const INDUSTRIAL: VernacularDictionary = {
     status_fail: 'INSUFFICIENT DATA',
     status_risk: 'HIGH DEPENDENCY',
     status_asset: 'SCALABLE REVENUE',
+
+    // App Shell
+    menu_archive: '[ REPORT ARCHIVE ]',
+    menu_calibrate: '[ UPDATE PROFILE ]',
+    menu_logout: '[ SIGN OUT ]',
+    footer_archive_link: 'View Past Reports',
+    xp_calibration: 'Profile Updated',
+    xp_finalized: 'Report Finalized',
+    xp_burned: 'Asset Retired',
+
+    // Calibration
+    calibration_title: 'Operator Setup',
+    calibration_subtitle: 'Analyst Profiling & Domain Registry',
+    label_name: 'Analyst Name',
+    label_industry: 'Market Domain',
+    label_goal: 'Primary Business Objective',
+    label_tone: 'Communication Style',
+    placeholder_name: 'e.g., J. Smith',
+    placeholder_industry: 'e.g., SaaS / Consulting / E-Commerce',
+    placeholder_goal: 'e.g., Scale revenue to $50k/month while reducing operational overhead.',
+    calibration_submit: 'Save Configuration',
+    calibration_footer: 'TetraTool // Operator profile saved securely',
+
+    // Value Chemistry
+    synthesis_title: 'Market Synthesis',
+    synthesis_subtitle: 'Identify the core market gap. Build the value proposition.',
+    synthesis_scan_ready: 'Ready to conduct market scan for',
+    synthesis_scan_cta: 'START MARKET SCAN',
+    synthesis_scanning: '[ ANALYZING MARKET DATA... ]',
+    synthesis_scanning_detail: 'Extracting market friction & core problem patterns',
+    synthesis_shadow_title: 'Market Friction Inventory',
+    synthesis_complete: 'Analysis complete. Ready for value proposition synthesis.',
+    synthesis_build_cta_prefix: 'BUILD',
+    synthesis_forging: '[ BUILDING VALUE PROPOSITION... ]',
+    synthesis_back: 'BACK TO PREVIOUS STEP',
+
+    // Installation
+    dossier_badge_sovereign: 'PRIMARY ASSET REPORT',
+    dossier_badge_official: 'ASSET REPORT',
+    tov_summary_label: 'Value Proposition Summary',
+    tov_promise_label: 'Core Transformation Promise',
+    generate_plan: 'Generate 7-Day Launch Protocol',
+    generating_plan: 'Building Launch Plan...',
+    plan_title: '7-Day Launch Protocol',
+    listen_idle: 'Listen',
+    listen_playing: 'Playing...',
+    download_pdf: 'Download Report (PDF)',
+    export_calendar: '📅 Export Launch Calendar (.ics)',
+    save_plan: 'Save Report',
+    saving_plan: 'Saving...',
+    finalize_dossier: '⬡ Finalize Report',
+
+    // Archive
+    archive_title: 'Report Archive',
+    archive_subtitle: 'Previously completed analysis sessions',
+    archive_new_button: '+ New Analysis',
+    archive_loading: 'Loading...',
+    archive_empty: 'No reports found. Start a new analysis to begin.',
+    archive_subject_label: 'Analyst',
+    archive_footer: 'TetraTool // Strategic Operations',
+
+    // Ritual Dashboard
+    ritual_subtitle: 'Daily KPI tracking. Numbers don\'t lie.',
+    ritual_active_weapon: 'Primary Asset',
+    ritual_offer_label: 'Premium Offer',
+    ritual_warning_title: '⚠ ENGAGEMENT ALERT',
+    ritual_warning_detail: 'It has been {days} days since your last entry. Consistency drives results.',
+    ritual_log_button: 'Log Activity',
+    ritual_entry_title: 'Entry Logged',
+    ritual_mood_label: 'Status',
+    ritual_notes_label: 'Notes',
+    ritual_commit: 'Submit Entry',
+    ritual_history_title: 'Activity History',
+
+    // Auth
+    auth_title: 'SECURE LOGIN',
+    auth_subtitle: 'Authenticate to proceed',
+    auth_footer: 'TetraTool Engine // Secure Portal',
+
+    // Refinement Terminal
+    refine_title: 'Report Editor',
+    refine_subtitle: 'Modify your launch protocol',
+    refine_log_label: '// Processing',
+    refine_log_waiting: '> Awaiting your feedback...',
+    refine_log_processing: '> UPDATING REPORT...',
+    refine_input_label: 'Your Feedback',
+    refine_cta: 'UPDATE REPORT',
+    refine_cta_processing: 'UPDATING...',
+    refine_footer: 'TetraTool Engine // Report Editor',
+
+    // Pyre
+    pyre_title: 'Asset Retirement',
+    pyre_subtitle: 'Asset Decommission',
+    pyre_target_label: 'Asset to Retire',
+    pyre_description: 'This asset no longer aligns with your strategy. Retiring it clears space for a new primary asset.',
+    pyre_cancel: 'Cancel',
+    pyre_ignite: '🔥 Retire Asset',
+    pyre_progress_label: 'Retiring',
+    pyre_complete: 'Retired. Capacity freed for new assets.',
+
+    // Axis labels
+    axis_top: 'STRUCTURED (DISCIPLINE)',
+    axis_bottom: 'EXPLORATORY (INNOVATION)',
+    axis_left: 'DELIVERY (PRODUCTION)',
+    axis_right: 'DISRUPTION (MARKET IMPACT)',
+
+    // Quadrant hover info
+    quadrant_craft_title: 'The Producer',
+    quadrant_craft_desc: 'Disciplined execution of repeatable systems.',
+    quadrant_craft_examples: 'Operations, SOPs, Process Design',
+    quadrant_ritual_title: 'The Optimizer',
+    quadrant_ritual_desc: 'Systematic improvement of existing processes.',
+    quadrant_ritual_examples: 'QA, Compliance, Performance Reviews',
+    quadrant_sandbox_title: 'The Innovator',
+    quadrant_sandbox_desc: 'Exploratory work to discover new opportunities.',
+    quadrant_sandbox_examples: 'R&D, Prototyping, Market Research',
+    quadrant_mischief_title: 'The Disruptor',
+    quadrant_mischief_desc: 'Challenging established norms for competitive advantage.',
+    quadrant_mischief_examples: 'Growth Hacking, Competitive Analysis, Pivots',
+
+    // Intro Phase
+    intro_headline_1: 'Asset',
+    intro_headline_2: 'Discovery',
+    intro_headline_3: 'Engine',
+    intro_subtitle: 'STRATEGIC ASSET IDENTIFICATION SUITE v2.0\n————————————————\nInventory, validate, and deploy your highest-leverage professional asset.',
+    intro_input_label: 'Client / Organization Name',
+    intro_placeholder: 'Enter client name',
+    intro_button: 'Begin Assessment',
+    intro_mode_label: 'Interface Mode',
+
+    // Tool Lock
+    lock_phase_prefix: 'Phase 4:',
+    lock_confirm: 'Select',
+};
+
+const PLAIN: VernacularDictionary = {
+    phase_armory: 'Your Skills',
+    phase_scoring: 'Skill Scorecard',
+    phase_lock: 'Your Best Skill',
+    phase_synthesis: 'Your Offer',
+    phase_installation: 'Your Game Plan',
+    phase_calibration: 'About You',
+    phase_archive: 'Saved Plans',
+    ritual_dashboard: 'Daily Tracker',
+
+    quadrant_sandbox: 'For Fun',
+    quadrant_mischief: 'Side Hustle',
+    quadrant_craft: 'Day Job',
+    quadrant_ritual: 'Daily Habit',
+
+    score_unbidden: 'People Ask You',
+    score_frictionless: 'Easy for You',
+    score_evidence: 'Proof It Works',
+    score_extraction: 'Depends on You',
+
+    sublabel_unbidden: 'Do people come to you for this without you asking?',
+    sublabel_frictionless: 'Could you do this in 30 minutes without thinking?',
+    sublabel_evidence: 'Do you have examples or results to show?',
+    sublabel_extraction: 'Does it stop working when you stop doing it?',
+
+    tool_singular: 'Skill',
+    tool_plural: 'Skills',
+    starting_tool: 'Best Skill',
+    locked_tool: 'Chosen Skill',
+    theory_of_value: 'Your Value',
+    godfather_offer: 'Your Offer',
+    fatal_wound: 'The Problem You Solve',
+    sacred_cow: 'Common Myth',
+    molecular_bond: 'What Makes You Different',
+    shadow_beliefs: 'Hidden Doubts',
+
+    action_forge: 'Add',
+    action_lock: 'Pick',
+    action_scan: 'Search',
+    action_challenge: 'Test',
+
+    status_pass: 'READY TO GO',
+    status_fail: 'NEEDS WORK',
+    status_risk: 'TOO DEPENDENT ON YOU',
+    status_asset: 'CAN SCALE',
+
+    // App Shell
+    menu_archive: '[ SAVED PLANS ]',
+    menu_calibrate: '[ EDIT PROFILE ]',
+    menu_logout: '[ LOG OUT ]',
+    footer_archive_link: 'View Saved Plans',
+    xp_calibration: 'Profile Saved',
+    xp_finalized: 'Plan Finalized',
+    xp_burned: 'Skill Removed',
+
+    // Calibration
+    calibration_title: 'About You',
+    calibration_subtitle: 'Tell us about your work',
+    label_name: 'Your Name',
+    label_industry: 'Your Industry',
+    label_goal: 'Your Main Goal',
+    label_tone: 'Communication Style',
+    placeholder_name: 'e.g., Sarah Johnson',
+    placeholder_industry: 'e.g., Fitness Coaching / Real Estate',
+    placeholder_goal: 'e.g., Get more clients online without spending all day on social media.',
+    calibration_submit: 'Save & Continue',
+    calibration_footer: 'TetraTool // Your profile is saved automatically',
+
+    // Value Chemistry
+    synthesis_title: 'Build Your Offer',
+    synthesis_subtitle: 'Find the real problem your audience has. Show why you solve it.',
+    synthesis_scan_ready: 'Ready to research the audience for',
+    synthesis_scan_cta: 'START RESEARCH',
+    synthesis_scanning: '[ RESEARCHING YOUR AUDIENCE... ]',
+    synthesis_scanning_detail: 'Finding hidden doubts & problem patterns',
+    synthesis_shadow_title: 'Hidden Doubts Your Audience Has',
+    synthesis_complete: 'Research complete. Ready to build your offer.',
+    synthesis_build_cta_prefix: 'BUILD',
+    synthesis_forging: '[ BUILDING YOUR OFFER... ]',
+    synthesis_back: 'GO BACK',
+
+    // Installation
+    dossier_badge_sovereign: 'YOUR REPORT',
+    dossier_badge_official: 'YOUR REPORT',
+    tov_summary_label: 'Your Value Summary',
+    tov_promise_label: 'The Promise',
+    generate_plan: 'Create 7-Day Action Plan',
+    generating_plan: 'Creating your plan...',
+    plan_title: '7-Day Action Plan',
+    listen_idle: 'Listen',
+    listen_playing: 'Playing...',
+    download_pdf: 'Download Report (PDF)',
+    export_calendar: '📅 Export 7-Day Plan (.ics)',
+    save_plan: 'Save My Plan',
+    saving_plan: 'Saving...',
+    finalize_dossier: '⬡ Lock It In',
+
+    // Archive
+    archive_title: 'Your Saved Plans',
+    archive_subtitle: 'Plans you\'ve created before',
+    archive_new_button: '+ Start New Plan',
+    archive_loading: 'Loading your plans...',
+    archive_empty: 'No plans yet. Start a new one to begin.',
+    archive_subject_label: 'Name',
+    archive_footer: 'TetraTool // Your Plans',
+
+    // Ritual Dashboard
+    ritual_subtitle: 'Track your daily progress. Numbers tell the truth.',
+    ritual_active_weapon: 'Your Current Skill',
+    ritual_offer_label: 'Your Offer',
+    ritual_warning_title: '⚠ HEADS UP',
+    ritual_warning_detail: 'It has been {days} days since your last entry. Try to stay consistent!',
+    ritual_log_button: 'Log Today',
+    ritual_entry_title: 'Today\'s Entry Saved',
+    ritual_mood_label: 'How Are You Feeling?',
+    ritual_notes_label: 'Notes',
+    ritual_commit: 'Save Entry',
+    ritual_history_title: 'History',
+
+    // Auth
+    auth_title: 'SIGN IN',
+    auth_subtitle: 'Log in to continue',
+    auth_footer: 'TetraTool Engine // Welcome',
+
+    // Refinement Terminal
+    refine_title: 'Edit Your Plan',
+    refine_subtitle: 'Make changes to your action plan',
+    refine_log_label: '// Ready',
+    refine_log_waiting: '> Waiting for your feedback...',
+    refine_log_processing: '> UPDATING YOUR PLAN...',
+    refine_input_label: 'What would you change?',
+    refine_cta: 'UPDATE PLAN',
+    refine_cta_processing: 'UPDATING...',
+    refine_footer: 'TetraTool Engine // Plan Editor',
+
+    // Pyre
+    pyre_title: 'Remove Skill',
+    pyre_subtitle: 'Skill Removal',
+    pyre_target_label: 'Skill to Remove',
+    pyre_description: 'This skill no longer fits your goals. Removing it clears space for something better. This action is permanent.',
+    pyre_cancel: 'Cancel',
+    pyre_ignite: '🔥 Remove Skill',
+    pyre_progress_label: 'Removing',
+    pyre_complete: 'Removed. Space cleared for new skills.',
+
+    // Axis labels
+    axis_top: 'STRUCTURED',
+    axis_bottom: 'EXPLORATORY',
+    axis_left: 'BUILDING',
+    axis_right: 'DISRUPTING',
+
+    // Quadrant hover info
+    quadrant_craft_title: 'The Builder',
+    quadrant_craft_desc: 'You use discipline to build lasting systems.',
+    quadrant_craft_examples: 'Engineering, Writing, Project Management',
+    quadrant_ritual_title: 'The Analyst',
+    quadrant_ritual_desc: 'You use discipline to evaluate and improve systems.',
+    quadrant_ritual_examples: 'Quality Checks, Reviews, Research',
+    quadrant_sandbox_title: 'The Explorer',
+    quadrant_sandbox_desc: 'You play to discover new patterns or ideas.',
+    quadrant_sandbox_examples: 'Brainstorming, Prototyping, Experimenting',
+    quadrant_mischief_title: 'The Disruptor',
+    quadrant_mischief_desc: 'You play to challenge or change existing patterns.',
+    quadrant_mischief_examples: 'Growth Hacking, Testing Limits, Marketing',
+
+    // Intro Phase
+    intro_headline_1: 'Figure out',
+    intro_headline_2: 'what you\'re',
+    intro_headline_3: 'best at.',
+    intro_subtitle: 'Answer some questions about your skills.\nWe\'ll show you which one is worth money — and how to sell it.',
+    intro_input_label: 'What\'s your name?',
+    intro_placeholder: 'Your name',
+    intro_button: 'Let\'s Go →',
+    intro_mode_label: 'How do you think about your work?',
+
+    // Tool Lock
+    lock_phase_prefix: 'Step 4:',
+    lock_confirm: 'Pick This',
 };
 
 const DICTIONARIES: Record<VernacularMode, VernacularDictionary> = {
     mythic: MYTHIC,
     industrial: INDUSTRIAL,
+    plain: PLAIN,
 };
 
 // ── React Context ──────────────────────────────────────────
@@ -171,7 +761,18 @@ const VernacularContext = createContext<VernacularContextType>({
 });
 
 export const VernacularProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [mode, setMode] = useState<VernacularMode>('mythic');
+    const [mode, setModeState] = useState<VernacularMode>(() => {
+        try {
+            const saved = localStorage.getItem('tte_vernacular_mode');
+            if (saved === 'mythic' || saved === 'industrial' || saved === 'plain') return saved;
+        } catch { /* no localStorage */ }
+        return 'mythic';
+    });
+
+    const setMode = (m: VernacularMode) => {
+        setModeState(m);
+        try { localStorage.setItem('tte_vernacular_mode', m); } catch { /* */ }
+    };
 
     return (
         <VernacularContext.Provider value={{ mode, setMode, v: DICTIONARIES[mode] }}>
@@ -187,26 +788,26 @@ export const useVernacular = () => useContext(VernacularContext);
 export const VernacularToggle: React.FC = () => {
     const { mode, setMode } = useVernacular();
 
+    const modes: { key: VernacularMode; icon: string; label: string }[] = [
+        { key: 'plain', icon: '🛠', label: 'Builder' },
+        { key: 'industrial', icon: '⚙', label: 'Strategist' },
+        { key: 'mythic', icon: '⚔', label: 'Architect' },
+    ];
+
     return (
         <div className="flex items-center gap-2 text-xs font-mono">
-            <button
-                onClick={() => setMode('mythic')}
-                className={`px-3 py-1 border transition-all ${mode === 'mythic'
-                        ? 'border-yellow-500 text-yellow-500 bg-yellow-500/10'
-                        : 'border-zinc-800 text-zinc-500 hover:text-zinc-300'
-                    }`}
-            >
-                ⚔ MYTHIC
-            </button>
-            <button
-                onClick={() => setMode('industrial')}
-                className={`px-3 py-1 border transition-all ${mode === 'industrial'
-                        ? 'border-cyan-500 text-cyan-500 bg-cyan-500/10'
-                        : 'border-zinc-800 text-zinc-500 hover:text-zinc-300'
-                    }`}
-            >
-                ⚙ INDUSTRIAL
-            </button>
+            {modes.map(m => (
+                <button
+                    key={m.key}
+                    onClick={() => setMode(m.key)}
+                    className={`px-3 py-1.5 border transition-all ${mode === m.key
+                        ? 'border-white text-white bg-white/10'
+                        : 'border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
+                        }`}
+                >
+                    {m.icon} {m.label}
+                </button>
+            ))}
         </div>
     );
 };

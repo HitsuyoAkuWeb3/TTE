@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ToolCandidate, TheoryOfValue, OperatorProfile } from '../../types';
 import { Button, SectionHeader } from '../Visuals';
+import { useVernacular } from '../../contexts/VernacularContext';
 
 // ============================================================
 // RITUAL DASHBOARD — Post-Audit Daily Tracking
@@ -52,6 +53,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     });
 
     const [showEntry, setShowEntry] = useState(false);
+    const { v } = useVernacular();
     const [newEntry, setNewEntry] = useState<DailyEntry>({
         date: new Date().toISOString().split('T')[0],
         clientReached: 0,
@@ -108,8 +110,8 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     return (
         <div className="max-w-5xl mx-auto w-full animate-fade-in space-y-8 font-mono">
             <SectionHeader
-                title="Ritual Dashboard"
-                subtitle="Daily execution tracking. The data doesn't lie."
+                title={v.ritual_dashboard}
+                subtitle={v.ritual_subtitle}
                 onBack={onBack}
             />
 
@@ -137,12 +139,12 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             {tool && (
                 <div className="border border-[#00FF41]/20 bg-[#00FF41]/5 p-4 flex items-center justify-between">
                     <div>
-                        <div className="text-[10px] text-zinc-500 uppercase">Active Weapon</div>
+                        <div className="text-[10px] text-zinc-500 uppercase">{v.ritual_active_weapon}</div>
                         <div className="text-sm font-bold text-white">{tool.plainName}</div>
                     </div>
                     {theoryOfValue?.godfatherOffer && (
                         <div className="text-right">
-                            <div className="text-[10px] text-zinc-500 uppercase">Godfather Offer</div>
+                            <div className="text-[10px] text-zinc-500 uppercase">{v.ritual_offer_label}</div>
                             <div className="text-sm text-yellow-400">{theoryOfValue.godfatherOffer.price}</div>
                         </div>
                     )}
@@ -152,10 +154,9 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             {/* False Positive Warning */}
             {isFalsePositive && (
                 <div className="border border-red-800/60 bg-red-950/20 p-5 space-y-3">
-                    <div className="text-xs uppercase text-red-400 font-mono tracking-wider">⚠ FALSE POSITIVE DETECTED</div>
+                    <div className="text-xs uppercase text-red-400 font-mono tracking-wider">{v.ritual_warning_title}</div>
                     <p className="text-sm text-zinc-400 font-mono leading-relaxed">
-                        {daysSinceLastEntry} days since your last logged ritual. If the tool isn't generating daily reps,
-                        it may not be your Starting Tool. Consider re-running the audit.
+                        {v.ritual_warning_detail.replace('{days}', String(daysSinceLastEntry))}
                     </p>
                     {onReAudit && (
                         <button
@@ -174,19 +175,19 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                     onClick={() => setShowEntry(true)}
                     className="w-full p-6 border border-dashed border-yellow-700/50 bg-yellow-900/5 text-yellow-500 text-sm uppercase tracking-wider hover:border-yellow-500 hover:bg-yellow-900/10 transition-all"
                 >
-                    ✦ LOG TODAY'S RITUAL
+                    {v.ritual_log_button}
                 </button>
             )}
 
             {hasEntryToday && !showEntry && (
                 <div className="p-4 border border-emerald-800/30 bg-emerald-900/5 text-center">
-                    <span className="text-xs font-mono text-emerald-400 uppercase">✓ Today's ritual logged</span>
+                    <span className="text-xs font-mono text-emerald-400 uppercase">{v.ritual_entry_title}</span>
                 </div>
             )}
 
             {showEntry && (
                 <div className="border border-yellow-800/30 bg-zinc-900/50 p-6 space-y-4">
-                    <h3 className="text-xs uppercase text-yellow-500 tracking-wider">Daily Ritual Entry — {newEntry.date}</h3>
+                    <h3 className="text-xs uppercase text-yellow-500 tracking-wider">{v.ritual_entry_title} — {newEntry.date}</h3>
 
                     <div className="grid grid-cols-3 gap-4">
                         <div>
@@ -223,7 +224,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
                     {/* Mood Selector */}
                     <div>
-                        <label className="text-[10px] text-zinc-500 uppercase block mb-2">Operational Mood</label>
+                        <label className="text-[10px] text-zinc-500 uppercase block mb-2">{v.ritual_mood_label}</label>
                         <div className="grid grid-cols-4 gap-2">
                             {(Object.keys(MOOD_CONFIG) as DailyEntry['mood'][]).map(mood => (
                                 <button
@@ -243,7 +244,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
                     {/* Note */}
                     <div>
-                        <label className="text-[10px] text-zinc-500 uppercase block mb-1">Field Notes</label>
+                        <label className="text-[10px] text-zinc-500 uppercase block mb-1">{v.ritual_notes_label}</label>
                         <textarea
                             value={newEntry.note}
                             onChange={(e) => setNewEntry(p => ({ ...p, note: e.target.value }))}
@@ -259,7 +260,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                         >
                             Cancel
                         </button>
-                        <Button onClick={handleSubmitEntry}>Commit Entry</Button>
+                        <Button onClick={handleSubmitEntry}>{v.ritual_commit}</Button>
                     </div>
                 </div>
             )}
@@ -267,7 +268,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             {/* Entry History */}
             {entries.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-[10px] text-zinc-500 uppercase tracking-widest">Ritual History ({entries.length} entries)</h3>
+                    <h3 className="text-[10px] text-zinc-500 uppercase tracking-widest">{v.ritual_history_title} ({entries.length} entries)</h3>
                     {entries.slice(0, 14).map((entry, i) => (
                         <div key={entry.date + i} className="border border-zinc-800 bg-zinc-900/30 p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">

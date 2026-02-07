@@ -3,8 +3,10 @@ import { ToolCandidate, OperatorProfile, TheoryOfValue, Phase } from '../../type
 import { generateAudioDossier, pcmToAudioBuffer, validateMarketWithSearch, connectLiveSession, disconnectLiveSession, refinePilotProtocol } from '../../services/geminiService';
 import { Button } from '../Visuals';
 import { pdfService } from '../../services/pdfService';
+import { downloadRitualCalendar } from '../../services/calendarService';
 import { SimpleMarkdown } from '../SimpleMarkdown';
 import { RefinementTerminal } from '../RefinementTerminal';
+import { useVernacular } from '../../contexts/VernacularContext';
 
 export const InstallationPhase: React.FC<{
     tool: ToolCandidate | null,
@@ -25,6 +27,7 @@ export const InstallationPhase: React.FC<{
     version?: number
 }> = ({ tool, plan, clientName, profile, theoryOfValue, onGeneratePlan, onUpdatePlan, onBack, onSave, onRetroactiveAudit, onFinalize, onForkVersion, isGenerating, isSaving, isFinalized, version }) => {
     const [isPlaying, setIsPlaying] = useState(false);
+    const { mode, v } = useVernacular();
     const [validating, setValidating] = useState(false);
     const [liveConnected, setLiveConnected] = useState(false);
     const [showRefiner, setShowRefiner] = useState(false);
@@ -107,7 +110,7 @@ export const InstallationPhase: React.FC<{
                 <div className={`absolute top-0 right-0 p-2 text-black font-mono text-xs font-bold
              ${tool.isSovereign ? 'bg-[#00FF41]' : 'bg-white'}
          `}>
-                    {tool.isSovereign ? 'SOVEREIGN DOSSIER' : 'OFFICIAL DOSSIER'}
+                    {tool.isSovereign ? v.dossier_badge_sovereign : v.dossier_badge_official}
                 </div>
 
                 {!theoryOfValue && (
@@ -128,7 +131,7 @@ export const InstallationPhase: React.FC<{
                     <button onClick={onBack} className="text-xs font-mono text-zinc-500 hover:text-white">&larr; CHANGE TOOL</button>
                 </div>
 
-                <h2 className="text-4xl font-black uppercase mb-2 break-words">{tool.plainName}</h2>
+                <h2 className="text-4xl font-display font-black uppercase mb-2 break-words">{tool.plainName}</h2>
                 <p className="font-mono text-zinc-400 mb-8 border-b border-zinc-800 pb-4">{tool.functionStatement}</p>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-8">
@@ -171,23 +174,23 @@ export const InstallationPhase: React.FC<{
                 {!plan ? (
                     <div className="text-center py-12 border-t border-zinc-800 border-dashed">
                         <Button onClick={onGeneratePlan} disabled={isGenerating}>
-                            {isGenerating ? 'Architecting Pilot...' : 'Generate 7-Day Pilot Protocol'}
+                            {isGenerating ? v.generating_plan : v.generate_plan}
                         </Button>
                     </div>
                 ) : (
                     <div className="animate-fade-in border-t border-zinc-800 pt-6">
                         {theoryOfValue && (
                             <div className="mb-12 border border-white/20 bg-zinc-950 p-8 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-                                <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.3em] mb-4">Forensic Theory of Value v.1</div>
+                                <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.3em] mb-4">{v.tov_summary_label}</div>
                                 <h3 className="text-3xl font-black mb-6 uppercase tracking-tight">{theoryOfValue.godfatherOffer.name}</h3>
 
                                 <div className="grid md:grid-cols-3 gap-8 mb-8 border-y border-zinc-900 py-8">
                                     <div>
-                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Molecular Bond</h4>
+                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">{v.molecular_bond}</h4>
                                         <p className="text-sm font-mono leading-relaxed">{theoryOfValue.molecularBond}</p>
                                     </div>
                                     <div>
-                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">Fatal Wound Audit</h4>
+                                        <h4 className="text-[9px] text-zinc-500 uppercase mb-2">{v.fatal_wound}</h4>
                                         <p className="text-sm font-mono text-red-500 italic">"{theoryOfValue.fatalWound}"</p>
                                     </div>
                                     <div>
@@ -198,16 +201,16 @@ export const InstallationPhase: React.FC<{
                                 </div>
 
                                 <div className="p-4 bg-zinc-900/50 border-l border-white font-mono text-xs text-zinc-400">
-                                    <h4 className="text-white text-[10px] uppercase mb-2">The Magick Pill Promise</h4>
+                                    <h4 className="text-white text-[10px] uppercase mb-2">{v.tov_promise_label}</h4>
                                     {theoryOfValue.godfatherOffer.transformation}
                                 </div>
                             </div>
                         )}
 
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold uppercase">7-Day Installation Protocol</h3>
+                            <h3 className="text-xl font-bold uppercase">{v.plan_title}</h3>
                             <Button onClick={handleTTS} disabled={isPlaying} variant="secondary" className="!py-1 !px-3 !text-xs">
-                                {isPlaying ? 'Broadcasting...' : 'Listen to Protocol'}
+                                {isPlaying ? v.listen_playing : v.listen_idle}
                             </Button>
                         </div>
                         <div className="font-mono text-sm leading-relaxed text-zinc-300 bg-zinc-900/50 p-6 border-l-2 border-white max-h-[500px] overflow-y-auto">
@@ -216,7 +219,7 @@ export const InstallationPhase: React.FC<{
                         <div className="mt-8 pt-6 border-t border-zinc-800 flex justify-end gap-4">
                             <div className="flex flex-wrap gap-3">
                                 <Button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         const state: any = {
                                             candidates: [tool],
                                             selectedToolId: tool.id,
@@ -227,11 +230,18 @@ export const InstallationPhase: React.FC<{
                                             clientName: clientName || 'Client'
                                         };
                                         if (version) state.version = version;
-                                        pdfService.generateDossierPDF(state);
+                                        await pdfService.generateDossierPDF(state, mode);
                                     }}
                                     variant="secondary"
                                 >
-                                    Download Dossier (PDF)
+                                    {v.download_pdf}
+                                </Button>
+
+                                <Button
+                                    onClick={() => downloadRitualCalendar(tool.plainName)}
+                                    variant="secondary"
+                                >
+                                    {v.export_calendar}
                                 </Button>
 
                                 {isFinalized ? (
@@ -259,7 +269,7 @@ export const InstallationPhase: React.FC<{
                                             variant="gold"
                                             className="w-full md:w-auto"
                                         >
-                                            {isSaving ? 'Synching with Neural Link...' : 'Commit Protocol to System'}
+                                            {isSaving ? v.saving_plan : v.save_plan}
                                         </Button>
                                         {onFinalize && (
                                             <Button
@@ -267,7 +277,7 @@ export const InstallationPhase: React.FC<{
                                                 disabled={isSaving}
                                                 className="w-full md:w-auto bg-emerald-900/30 border-emerald-700 text-emerald-400 hover:bg-emerald-900/50 text-[10px] uppercase tracking-wider"
                                             >
-                                                ⬡ Finalize Dossier
+                                                {v.finalize_dossier}
                                             </Button>
                                         )}
                                     </>

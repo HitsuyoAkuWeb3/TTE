@@ -109,6 +109,8 @@ export interface SystemState {
   finalized?: boolean;
   version?: number;
   finalizedAt?: number;
+  // Gamification
+  xp: number;
 }
 
 // Append-only snapshot for version history
@@ -135,4 +137,5 @@ export const INITIAL_STATE: SystemState = {
   theoryOfValue: null,
   finalized: false,
   version: 0,
+  xp: 0,
 };

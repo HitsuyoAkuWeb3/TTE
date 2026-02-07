@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ToolCandidate } from '../../types';
 import { Button, SectionHeader } from '../Visuals';
 import { challengeScore, ChallengeResult } from '../../services/geminiService';
+import { useVernacular } from '../../contexts/VernacularContext';
 
 // ============================================================
 // TACTILE SLIDER — The Weight of Truth
@@ -35,8 +36,8 @@ const TactileSlider: React.FC<{
             <div className="flex justify-between items-center">
                 <span className="text-xs uppercase text-zinc-500 font-mono tracking-wider">{label}</span>
                 <span className={`text-2xl font-mono font-bold transition-colors duration-300 ${value === 0 ? 'text-zinc-600' :
-                        isRisk ? (value >= 3 ? 'text-red-500' : 'text-emerald-500') :
-                            (value >= 4 ? 'text-red-500' : value >= 3 ? 'text-yellow-500' : 'text-emerald-500')
+                    isRisk ? (value >= 3 ? 'text-red-500' : 'text-emerald-500') :
+                        (value >= 4 ? 'text-red-500' : value >= 3 ? 'text-yellow-500' : 'text-emerald-500')
                     }`}>
                     {value}<span className="text-xs text-zinc-600">/5</span>
                 </span>
@@ -130,6 +131,7 @@ export const EvidenceScoringPhase: React.FC<{
     const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
     const [challengeContext, setChallengeContext] = useState<{ key: string; dimension: string } | null>(null);
     const [isChallengingScore, setIsChallengingScore] = useState(false);
+    const { mode, v } = useVernacular();
 
     const activeCandidate = candidates[activeIndex];
 
@@ -240,8 +242,8 @@ export const EvidenceScoringPhase: React.FC<{
     return (
         <div className="max-w-3xl mx-auto w-full animate-fade-in">
             <SectionHeader
-                title="Phase 3: The Crucible"
-                subtitle="Evidence Gates. High claims require high proof."
+                title={mode === 'plain' ? `Step 3: ${v.phase_scoring}` : `Phase 3: ${v.phase_scoring}`}
+                subtitle={mode === 'plain' ? 'Rate how strong each skill really is. Be honest.' : 'Evidence Gates. High claims require high proof.'}
                 onBack={onBack}
             />
 
@@ -281,7 +283,7 @@ export const EvidenceScoringPhase: React.FC<{
             {isChallengingScore && (
                 <div className="mb-6 p-3 border border-red-900/30 bg-red-900/5 animate-pulse">
                     <span className="text-xs font-mono text-red-400 uppercase tracking-wider">
-                        ⚡ Adversarial Auditor scanning your claim...
+                        {mode === 'plain' ? '⚡ Checking your claim...' : '⚡ Adversarial Auditor scanning your claim...'}
                     </span>
                 </div>
             )}
@@ -289,8 +291,8 @@ export const EvidenceScoringPhase: React.FC<{
             <div className="space-y-8">
                 {/* Dimension 1: Unbidden Requests */}
                 <div className="border border-zinc-800 p-6">
-                    <h3 className="text-lg font-bold mb-2 text-white">1. Unbidden Requests</h3>
-                    <p className="text-zinc-400 mb-6 text-sm">How often do people seek you out for this without prompting?</p>
+                    <h3 className="text-lg font-bold mb-2 text-white">1. {v.score_unbidden}</h3>
+                    <p className="text-zinc-400 mb-6 text-sm">{v.sublabel_unbidden}</p>
                     <TactileSlider
                         value={activeCandidate.scores.unbiddenRequests}
                         onChange={(val) => handleScoreChange('unbiddenRequests', 'Unbidden Requests', val, 'unbidden')}
@@ -298,7 +300,7 @@ export const EvidenceScoringPhase: React.FC<{
                     />
                     {activeCandidate.scores.unbiddenRequests >= 3 && (
                         <div className="mt-4 animate-fade-in">
-                            <label className="block text-xs uppercase text-zinc-500 mb-1 font-mono">Evidence Required — Paste DMs, Emails, or Requests</label>
+                            <label className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste messages, emails, or requests' : 'Evidence Required — Paste DMs, Emails, or Requests'}</label>
                             <textarea
                                 className="w-full bg-zinc-900 border border-zinc-700 text-white p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
                                 placeholder="Paste the DM content, email, or request here..."
@@ -311,7 +313,7 @@ export const EvidenceScoringPhase: React.FC<{
 
                 {/* Dimension 2: Frictionless Doing */}
                 <div className="border border-zinc-800 p-6">
-                    <h3 className="text-lg font-bold mb-2 text-white">2. Frictionless Doing</h3>
+                    <h3 className="text-lg font-bold mb-2 text-white">2. {v.score_frictionless}</h3>
                     <p className="text-zinc-400 mb-6 text-sm">
                         Can you deliver <b className="text-zinc-200">{activeCandidate.promise}</b> in 30 mins with zero prep?
                     </p>
@@ -324,8 +326,8 @@ export const EvidenceScoringPhase: React.FC<{
 
                 {/* Dimension 3: Result Evidence */}
                 <div className="border border-zinc-800 p-6">
-                    <h3 className="text-lg font-bold mb-2 text-white">3. Result Evidence</h3>
-                    <p className="text-zinc-400 mb-6 text-sm">Do you have Case Studies, Testimonials, or Quantified Metrics?</p>
+                    <h3 className="text-lg font-bold mb-2 text-white">3. {v.score_evidence}</h3>
+                    <p className="text-zinc-400 mb-6 text-sm">{v.sublabel_evidence}</p>
                     <TactileSlider
                         value={activeCandidate.scores.resultEvidence}
                         onChange={(val) => handleScoreChange('resultEvidence', 'Result Evidence', val, 'result')}
@@ -333,7 +335,7 @@ export const EvidenceScoringPhase: React.FC<{
                     />
                     {activeCandidate.scores.resultEvidence >= 3 && (
                         <div className="mt-4 animate-fade-in">
-                            <label className="block text-xs uppercase text-zinc-500 mb-1 font-mono">Evidence Required — Paste Testimonial or Metric</label>
+                            <label className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste a testimonial or result' : 'Evidence Required — Paste Testimonial or Metric'}</label>
                             <textarea
                                 className="w-full bg-zinc-900 border border-zinc-700 text-white p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
                                 placeholder="Paste the testimonial, case study URL, or metric..."
@@ -346,8 +348,8 @@ export const EvidenceScoringPhase: React.FC<{
 
                 {/* Dimension 4: Extraction Risk */}
                 <div className="border border-red-900/30 p-6 bg-red-900/5">
-                    <h3 className="text-lg font-bold mb-2 text-red-400">4. Extraction Risk</h3>
-                    <p className="text-zinc-400 mb-6 text-sm">Is this a job or an asset? If you stop, does it stop?</p>
+                    <h3 className="text-lg font-bold mb-2 text-red-400">4. {v.score_extraction}</h3>
+                    <p className="text-zinc-400 mb-6 text-sm">{v.sublabel_extraction}</p>
                     <TactileSlider
                         value={activeCandidate.scores.extractionRisk}
                         onChange={(val) => updateScore('extractionRisk', val)}
@@ -355,7 +357,9 @@ export const EvidenceScoringPhase: React.FC<{
                         isRisk={true}
                     />
                     <p className="text-[10px] font-mono text-zinc-600 mt-2">
-                        HIGH = You ARE the product (job). LOW = The product works without you (asset).
+                        {mode === 'plain'
+                            ? 'HIGH = You have to do it yourself (a job). LOW = It works without you (an asset).'
+                            : 'HIGH = You ARE the product (job). LOW = The product works without you (asset).'}
                     </p>
                 </div>
             </div>
@@ -367,7 +371,7 @@ export const EvidenceScoringPhase: React.FC<{
                     </span>
                 )}
                 <Button onClick={onNext} disabled={!isComplete}>
-                    Audit Complete → Lock Tool
+                    {mode === 'plain' ? 'Done → Pick Your Best Skill' : 'Audit Complete → Lock Tool'}
                 </Button>
             </div>
         </div>

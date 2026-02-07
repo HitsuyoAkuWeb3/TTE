@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import {
   Phase,
@@ -10,6 +10,9 @@ import {
 } from './types';
 import { generatePilotProtocol, updateCortex } from './services/geminiService';
 import { ProgressBar } from './components/Visuals';
+import { RankBadge, XpToast } from './components/RankBadge';
+import { XP_AWARDS } from './services/gamification';
+import { useVernacular } from './contexts/VernacularContext';
 
 // Phase Components
 import { IntroPhase } from './components/phases/IntroPhase';
@@ -23,6 +26,8 @@ import { AuthTerminal } from './components/AuthTerminal';
 import { ArchivePhase } from './components/phases/ArchivePhase';
 import { CalibrationPhase } from './components/phases/CalibrationPhase';
 import { RitualDashboard } from './components/phases/RitualDashboard';
+import { Pyre } from './components/phases/Pyre';
+import { ToolCandidate } from './types';
 
 export default function App() {
   const { isLoaded: clerkLoaded, user: clerkUser } = useUser();
@@ -33,6 +38,15 @@ export default function App() {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [xpToast, setXpToast] = useState<{ amount: number; reason: string } | null>(null);
+  const [pyreTarget, setPyreTarget] = useState<ToolCandidate | null>(null);
+  const { mode, v } = useVernacular();
+
+  // XP award helper — updates state + shows toast
+  const awardXp = useCallback((amount: number, reason: string) => {
+    setState(s => ({ ...s, xp: s.xp + amount }));
+    setXpToast({ amount, reason });
+  }, []);
 
   // Sync auth user to state
   React.useEffect(() => {
@@ -90,6 +104,7 @@ export default function App() {
     } catch { /* API unavailable */ }
     localStorage.setItem(`profile_${user.id}`, JSON.stringify(fullProfile));
     setState(s => ({ ...s, profile: fullProfile, currentPhase: Phase.INTRO }));
+    awardXp(XP_AWARDS.CALIBRATION_COMPLETE, v.xp_calibration);
   };
 
   const handleSave = async (currentState: SystemState) => {
@@ -183,7 +198,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-white selection:text-black">
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -203,7 +218,7 @@ export default function App() {
                   }}
                   className="text-left px-4 py-3 text-[10px] font-mono text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
                 >
-                  [ DOSSIER ARCHIVE ]
+                  {v.menu_archive}
                 </button>
               )}
 
@@ -215,7 +230,7 @@ export default function App() {
                   }}
                   className="text-left px-4 py-3 text-[10px] font-mono text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
                 >
-                  [ RE-CALIBRATE ]
+                  {v.menu_calibrate}
                 </button>
               )}
 
@@ -226,11 +241,12 @@ export default function App() {
                 }}
                 className="text-left px-4 py-3 text-[10px] font-mono text-[#FF2A2A] hover:bg-[#FF2A2A]/5 hover:text-[#ff4d4d] transition-colors uppercase tracking-widest"
               >
-                [ TERMINATE LINK ]
+                {v.menu_logout}
               </button>
             </div>
           )}
         </div>
+        <RankBadge xp={state.xp} />
       </div>
 
       <ProgressBar current={getProgress()} total={100} />
@@ -368,6 +384,7 @@ export default function App() {
               // Lock state
               setState(s => ({ ...s, finalized: true, version: newVersion, finalizedAt: Date.now() }));
               handleSave({ ...state, finalized: true, version: newVersion, finalizedAt: Date.now() });
+              awardXp(XP_AWARDS.DOSSIER_FINALIZED, v.xp_finalized);
             }}
             onForkVersion={() => {
               const nextVersion = (state.version || 1) + 1;
@@ -401,9 +418,35 @@ export default function App() {
             onClick={() => setState(s => ({ ...s, currentPhase: Phase.ARCHIVE }))}
             className="text-[10px] font-mono text-[#00FF41] hover:bg-[#00FF41] hover:text-black transition-all uppercase tracking-[0.2em] bg-black/80 backdrop-blur-sm px-6 py-3 border border-[#00FF41]/30 hover:border-[#00FF41] rounded-sm pointer-events-auto shadow-[0_0_20px_rgba(0,255,65,0.1)]"
           >
-            Access Existing Dossiers
+            {v.footer_archive_link}
           </button>
         </footer>
+      )}
+
+      {/* XP Toast */}
+      {xpToast && (
+        <XpToast
+          amount={xpToast.amount}
+          reason={xpToast.reason}
+          onDone={() => setXpToast(null)}
+        />
+      )}
+
+      {/* The Pyre — Tool Retirement Ceremony */}
+      {pyreTarget && (
+        <Pyre
+          tool={pyreTarget}
+          onBurnComplete={(toolId) => {
+            setState(s => ({
+              ...s,
+              candidates: s.candidates.filter(c => c.id !== toolId),
+              selectedToolId: s.selectedToolId === toolId ? null : s.selectedToolId,
+            }));
+            setPyreTarget(null);
+            awardXp(100, v.xp_burned);
+          }}
+          onCancel={() => setPyreTarget(null)}
+        />
       )}
     </div>
   );

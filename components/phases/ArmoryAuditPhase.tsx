@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArmoryItem, OperatorProfile } from '../../types';
 import { classifyActivity, generateStarterDeck, StarterCard } from '../../services/geminiService';
 import { Button, Input, SectionHeader, ArmoryMap } from '../Visuals';
+import { useVernacular } from '../../contexts/VernacularContext';
 
 // Sovereign Primitives Data Structure (Polymath Merge v2026)
 const PRIMITIVES = [
@@ -135,6 +136,7 @@ export const ArmoryAuditPhase: React.FC<{
     onNext: () => void,
     onBack: () => void
 }> = ({ items, profile, onAddItem, onUpdateItem, onNext, onBack }) => {
+    const { mode, v } = useVernacular();
     const [verb, setVerb] = useState('');
     const [isClassifying, setIsClassifying] = useState(false);
     const [hoveredPrim, setHoveredPrim] = useState<string | null>(null);
@@ -183,8 +185,8 @@ export const ArmoryAuditPhase: React.FC<{
     return (
         <div className="max-w-6xl mx-auto w-full animate-fade-in">
             <SectionHeader
-                title="Phase 1: Armory Audit"
-                subtitle="List every recurring activity. Verbs only. No metaphors."
+                title={mode === 'plain' ? `Step 1: ${v.phase_armory}` : `Phase 1: ${v.phase_armory}`}
+                subtitle={mode === 'plain' ? 'List everything you do regularly. Use action words.' : 'List every recurring activity. Verbs only. No metaphors.'}
                 onBack={onBack}
             />
 
@@ -194,20 +196,20 @@ export const ArmoryAuditPhase: React.FC<{
                     <button
                         onClick={() => setViewMode('spatial')}
                         className={`px-3 py-1 text-[10px] font-mono uppercase transition-all ${viewMode === 'spatial'
-                                ? 'bg-white text-black'
-                                : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-white text-black'
+                            : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
                             }`}
                     >
-                        Spatial Forge
+                        {mode === 'plain' ? 'Visual Map' : 'Spatial Forge'}
                     </button>
                     <button
                         onClick={() => setViewMode('terminal')}
                         className={`px-3 py-1 text-[10px] font-mono uppercase transition-all ${viewMode === 'terminal'
-                                ? 'bg-white text-black'
-                                : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-white text-black'
+                            : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
                             }`}
                     >
-                        Terminal Audit
+                        {mode === 'plain' ? 'List View' : 'Terminal Audit'}
                     </button>
                 </div>
             </div>
@@ -317,7 +319,7 @@ export const ArmoryAuditPhase: React.FC<{
 
                         {/* Scrollable List */}
                         <div className="space-y-4 pr-2 border-t border-zinc-800 pt-4 flex-1 overflow-y-auto min-h-0">
-                            <h3 className="text-xs uppercase text-zinc-500 font-mono">My Armory ({items.length})</h3>
+                            <h3 className="text-xs uppercase text-zinc-500 font-mono">{mode === 'plain' ? `My ${v.tool_plural}` : 'My Armory'} ({items.length})</h3>
                             {items.map(item => (
                                 <div key={item.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-sm">
                                     <div className="flex justify-between items-center mb-2">
@@ -362,7 +364,7 @@ export const ArmoryAuditPhase: React.FC<{
                                 </div>
                             ))}
                             {items.length === 0 && (
-                                <p className="text-zinc-500 italic text-sm">Armory empty. Add at least 3 items to map your arsenal.</p>
+                                <p className="text-zinc-500 italic text-sm">{mode === 'plain' ? `No skills added yet. Add at least 3 to see your map.` : `Armory empty. Add at least 3 items to map your arsenal.`}</p>
                             )}
                         </div>
 
@@ -411,8 +413,8 @@ export const ArmoryAuditPhase: React.FC<{
                                             </td>
                                             <td className="p-3">
                                                 <span className={`text-[10px] uppercase ${item.quadrant === 'Ritual' || item.quadrant === 'Craft'
-                                                        ? 'text-[#00FF41]'
-                                                        : 'text-zinc-500'
+                                                    ? 'text-[#00FF41]'
+                                                    : 'text-zinc-500'
                                                     }`}>{item.quadrant}</span>
                                             </td>
                                             <td className="p-3 text-center">
@@ -429,7 +431,7 @@ export const ArmoryAuditPhase: React.FC<{
                                     {items.length === 0 && (
                                         <tr>
                                             <td colSpan={6} className="p-6 text-center text-zinc-600 italic">
-                                                Armory empty. Start adding items above.
+                                                {mode === 'plain' ? 'No skills yet. Start adding above.' : 'Armory empty. Start adding items above.'}
                                             </td>
                                         </tr>
                                     )}
@@ -440,7 +442,7 @@ export const ArmoryAuditPhase: React.FC<{
                         {/* Status bar */}
                         <div className="flex-none bg-zinc-900 border border-zinc-800 border-t-0 p-2 flex justify-between items-center">
                             <span className="text-[10px] text-zinc-500 font-mono">
-                                {items.length} items | {items.filter(i => i.quadrant === 'Ritual' || i.quadrant === 'Craft').length} in RITUAL/CRAFT
+                                {items.length} {mode === 'plain' ? v.tool_plural.toLowerCase() : 'items'} | {items.filter(i => i.quadrant === 'Ritual' || i.quadrant === 'Craft').length} in {mode === 'plain' ? `${v.quadrant_ritual}/${v.quadrant_craft}` : 'RITUAL/CRAFT'}
                             </span>
                             <span className="text-[10px] text-zinc-600 font-mono">TAB to navigate | ENTER to add</span>
                         </div>
@@ -448,13 +450,13 @@ export const ArmoryAuditPhase: React.FC<{
                         {/* Proceed */}
                         <div className="flex-none pt-4">
                             <Button onClick={onNext} disabled={items.length < 3} className="w-full">
-                                Proceed to Compression &rarr;
+                                {mode === 'plain' ? 'Next Step →' : 'Proceed to Compression →'}
                             </Button>
                         </div>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
+import { VernacularProvider } from './contexts/VernacularContext';
 import App from './App';
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -18,7 +19,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ClerkProvider publishableKey={CLERK_KEY}>
-      <App />
+      <VernacularProvider>
+        <App />
+      </VernacularProvider>
     </ClerkProvider>
   </React.StrictMode>
 );

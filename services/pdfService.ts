@@ -2,8 +2,94 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SystemState, getVerificationLevel, VERIFICATION_LABELS } from '../types';
 
+type PdfMode = 'mythic' | 'industrial' | 'plain';
+
+// Mode-aware label maps for PDF content
+const PDF_LABELS: Record<PdfMode, {
+    topBar: string;
+    title: string;
+    operatorLabel: string;
+    identitySection: string;
+    tovSection: string;
+    fatalWound: string;
+    sacredCow: string;
+    molecularBond: string;
+    godfatherOffer: string;
+    armorySection: string;
+    sovereignLabel: string;
+    toolLabel: string;
+    scoringSection: string;
+    evidenceSection: string;
+    protocolSection: string;
+    footer: string;
+    proofLabel: string;
+    filePrefix: string;
+}> = {
+    mythic: {
+        topBar: 'CONFIDENTIAL // SOVEREIGN ARCHITECTURE // FOR OPERATOR USE ONLY',
+        title: 'THE SOVEREIGN DOSSIER',
+        operatorLabel: 'OPERATOR',
+        identitySection: 'IDENTITY MATRIX',
+        tovSection: 'THEORY OF VALUE',
+        fatalWound: 'Fatal Wound',
+        sacredCow: 'Sacred Cow',
+        molecularBond: 'Molecular Bond',
+        godfatherOffer: 'THE GODFATHER OFFER',
+        armorySection: 'THE ARMORY — LOCKED TOOLS',
+        sovereignLabel: 'SOVEREIGN',
+        toolLabel: 'TOOL',
+        scoringSection: 'EVIDENCE SCORING MATRIX',
+        evidenceSection: 'EVIDENCE LOG',
+        protocolSection: 'PILOT PROTOCOL — 7-DAY EXECUTION',
+        footer: 'TETRATOOL ENGINE // SOVEREIGN DOSSIER',
+        proofLabel: 'PROOF OF WORK // VERIFIED HUMAN',
+        filePrefix: 'Sovereign_Dossier',
+    },
+    industrial: {
+        topBar: 'CONFIDENTIAL // STRATEGIC REPORT // INTERNAL USE',
+        title: 'STRATEGIC ASSET REPORT',
+        operatorLabel: 'ANALYST',
+        identitySection: 'OPERATOR PROFILE',
+        tovSection: 'VALUE PROPOSITION',
+        fatalWound: 'Core Problem',
+        sacredCow: 'Market Assumption',
+        molecularBond: 'Competitive Edge',
+        godfatherOffer: 'PREMIUM OFFER',
+        armorySection: 'ASSET INVENTORY — SELECTED',
+        sovereignLabel: 'PRIMARY',
+        toolLabel: 'ASSET',
+        scoringSection: 'PERFORMANCE AUDIT MATRIX',
+        evidenceSection: 'EVIDENCE LOG',
+        protocolSection: 'LAUNCH PROTOCOL — 7-DAY EXECUTION',
+        footer: 'TETRATOOL ENGINE // STRATEGIC REPORT',
+        proofLabel: 'PROOF OF WORK // VERIFIED',
+        filePrefix: 'Strategic_Report',
+    },
+    plain: {
+        topBar: 'YOUR PERSONAL ACTION PLAN',
+        title: 'YOUR ACTION PLAN',
+        operatorLabel: 'NAME',
+        identitySection: 'ABOUT YOU',
+        tovSection: 'YOUR VALUE',
+        fatalWound: 'Problem You Solve',
+        sacredCow: 'Common Myth',
+        molecularBond: 'What Makes You Different',
+        godfatherOffer: 'YOUR OFFER',
+        armorySection: 'YOUR SKILLS',
+        sovereignLabel: 'TOP SKILL',
+        toolLabel: 'SKILL',
+        scoringSection: 'SKILL SCORECARD',
+        evidenceSection: 'PROOF & EVIDENCE',
+        protocolSection: '7-DAY ACTION PLAN',
+        footer: 'TETRATOOL ENGINE // ACTION PLAN',
+        proofLabel: 'VERIFIED DOCUMENT',
+        filePrefix: 'Action_Plan',
+    },
+};
+
 export const pdfService = {
-    generateDossierPDF: (state: SystemState) => {
+    generateDossierPDF: async (state: SystemState, mode: PdfMode = 'mythic') => {
+        const L = PDF_LABELS[mode];
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
         const margin = 20;
@@ -56,17 +142,17 @@ export const pdfService = {
         doc.setFont("courier", "bold");
         doc.setFontSize(7);
         doc.setTextColor(255);
-        doc.text("CONFIDENTIAL // SOVEREIGN ARCHITECTURE // FOR OPERATOR USE ONLY", margin, 5);
+        doc.text(L.topBar, margin, 5);
         doc.setTextColor(0);
 
-        centerText("THE SOVEREIGN DOSSIER", 35, 22, "bold");
+        centerText(L.title, 35, 22, "bold");
         doc.setDrawColor(0);
         doc.setLineWidth(1);
         doc.line(margin + 20, 40, pageWidth - margin - 20, 40);
 
         doc.setFontSize(10);
         doc.setFont("courier", "normal");
-        centerText(`OPERATOR: ${state.profile?.name || 'UNREGISTERED'}`, 50);
+        centerText(`${L.operatorLabel}: ${state.profile?.name || 'UNREGISTERED'}`, 50);
         centerText(`DOMAIN: ${state.profile?.industry || 'UNDEFINED'}`, 56);
         centerText(`DATE: ${new Date().toISOString().split('T')[0]}`, 62);
         centerText(`SESSION: ${state.id || 'UNREGISTERED'}`, 68);
@@ -78,10 +164,10 @@ export const pdfService = {
 
         // ── 1. IDENTITY MATRIX ──────────────────────────────
 
-        addSectionTitle("IDENTITY MATRIX");
+        addSectionTitle(L.identitySection);
         if (state.profile) {
             const profileData = [
-                ["OPERATOR", state.profile.name],
+                [L.operatorLabel, state.profile.name],
                 ["DOMAIN", state.profile.industry],
                 ["DIRECTIVE", state.profile.strategicGoal],
                 ["TONE", state.profile.preferredTone.toUpperCase()],
@@ -105,18 +191,18 @@ export const pdfService = {
         // ── 2. THEORY OF VALUE ──────────────────────────────
 
         if (state.theoryOfValue) {
-            addSectionTitle("THEORY OF VALUE");
+            addSectionTitle(L.tovSection);
             const tov = state.theoryOfValue;
 
-            addKeyValue("Fatal Wound", tov.fatalWound);
-            addKeyValue("Sacred Cow", tov.sacredCow);
-            addKeyValue("Molecular Bond", tov.molecularBond || 'Not synthesized');
+            addKeyValue(L.fatalWound, tov.fatalWound);
+            addKeyValue(L.sacredCow, tov.sacredCow);
+            addKeyValue(L.molecularBond, tov.molecularBond || 'Not synthesized');
 
             if (tov.godfatherOffer) {
                 currentY += 4;
                 doc.setFont("courier", "bold");
                 doc.setFontSize(10);
-                doc.text("THE GODFATHER OFFER", margin, currentY);
+                doc.text(L.godfatherOffer, margin, currentY);
                 currentY += 8;
 
                 addKeyValue("Name", tov.godfatherOffer.name);
@@ -130,13 +216,13 @@ export const pdfService = {
         if (state.candidates && state.candidates.length > 0) {
             doc.addPage();
             currentY = 20;
-            addSectionTitle("THE ARMORY — LOCKED TOOLS");
+            addSectionTitle(L.armorySection);
 
             const toolsData = state.candidates.map(c => {
                 const level = getVerificationLevel(c);
                 return [
                     c.plainName,
-                    c.isSovereign ? "SOVEREIGN" : "TOOL",
+                    c.isSovereign ? L.sovereignLabel : L.toolLabel,
                     c.functionStatement,
                     VERIFICATION_LABELS[level]
                 ];
@@ -165,7 +251,7 @@ export const pdfService = {
 
             // ── SCORE BREAKDOWN ─────────────────────────────
 
-            addSectionTitle("EVIDENCE SCORING MATRIX");
+            addSectionTitle(L.scoringSection);
 
             const scoreLabels = ['Unbidden Requests', 'Frictionless Doing', 'Result Evidence', 'Extraction Risk'];
             const scoreData = state.candidates.map(c => [
@@ -209,7 +295,7 @@ export const pdfService = {
             );
 
             if (hasAnyProof) {
-                addSectionTitle("EVIDENCE LOG");
+                addSectionTitle(L.evidenceSection);
 
                 state.candidates.forEach(c => {
                     if (currentY > 250) { doc.addPage(); currentY = 20; }
@@ -241,7 +327,7 @@ export const pdfService = {
         if (state.pilotPlan) {
             doc.addPage();
             currentY = 20;
-            addSectionTitle("PILOT PROTOCOL — 7-DAY EXECUTION");
+            addSectionTitle(L.protocolSection);
 
             doc.setFontSize(8);
             doc.setFont("courier", "normal");
@@ -263,13 +349,42 @@ export const pdfService = {
             doc.setFont("courier", "normal");
             doc.setFontSize(7);
             doc.setTextColor(150);
-            doc.text("TETRATOOL ENGINE // SOVEREIGN DOSSIER", margin, 290);
+            doc.text(L.footer, margin, 290);
             doc.text(`${i} / ${pageCount}`, pageWidth - margin - 10, 290);
         }
+
+        // ── PROOF OF WORK — SHA-256 HASH ─────────────────
+
+        const stateString = JSON.stringify({
+            profile: state.profile,
+            candidates: state.candidates,
+            selectedToolId: state.selectedToolId,
+            theoryOfValue: state.theoryOfValue,
+            pilotPlan: state.pilotPlan,
+            version: state.version,
+            finalizedAt: state.finalizedAt,
+        });
+        const encoder = new TextEncoder();
+        const data = encoder.encode(stateString);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // Add hash to last page
+        const lastPage = doc.getNumberOfPages();
+        doc.setPage(lastPage);
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(120);
+        doc.text(L.proofLabel, margin, 275);
+        doc.setFontSize(5);
+        doc.setTextColor(150);
+        doc.text(`SHA-256: ${hashHex}`, margin, 279);
+        doc.text(`Timestamp: ${new Date().toISOString()}`, margin, 282);
 
         // ── SAVE ────────────────────────────────────────────
 
         const name = state.profile?.name?.replace(/\s+/g, '_') || 'User';
-        doc.save(`Sovereign_Dossier_${name}_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`${L.filePrefix}_${name}_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 };

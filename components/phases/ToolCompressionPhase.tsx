@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArmoryItem, ToolCandidate } from '../../types';
 import { synthesizeToolDefinition, synthesizeSovereignAuthority, suggestMerge, MergeSuggestion } from '../../services/geminiService';
 import { Button, SectionHeader } from '../Visuals';
+import { useVernacular } from '../../contexts/VernacularContext';
 
 const ARMORY_HARD_CAP = 15;
 
@@ -15,6 +16,7 @@ export const ToolCompressionPhase: React.FC<{
 }> = ({ armory, onSelectCandidates, onRemoveItems, onRenameItem, onNext, onBack }) => {
     const [selections, setSelections] = useState<string[]>([]);
     const [candidates, setCandidates] = useState<ToolCandidate[]>([]);
+    const { mode, v } = useVernacular();
     const [analyzing, setAnalyzing] = useState(false);
     const [synthesizingSovereign, setSynthesizingSovereign] = useState(false);
 
@@ -102,8 +104,8 @@ export const ToolCompressionPhase: React.FC<{
         return (
             <div className="max-w-5xl mx-auto w-full animate-fade-in">
                 <SectionHeader
-                    title="Phase 2: Market Synthesis"
-                    subtitle="The Engine has compressed your skills into commercially viable functions."
+                    title={mode === 'plain' ? `Step 2: Your ${v.tool_plural}` : 'Phase 2: Market Synthesis'}
+                    subtitle={mode === 'plain' ? 'We turned your skills into roles you can sell.' : 'The Engine has compressed your skills into commercially viable functions.'}
                     onBack={onBack}
                 />
                 <div className={`grid grid-cols-1 ${isSovereign ? 'md:grid-cols-1 max-w-2xl mx-auto' : 'md:grid-cols-3'} gap-6`}>
@@ -117,7 +119,7 @@ export const ToolCompressionPhase: React.FC<{
                             <div className={`absolute top-0 right-0 p-2 text-black text-[10px] font-bold uppercase
                   ${c.isSovereign ? 'bg-[#00FF41]' : 'bg-white'}
               `}>
-                                {c.isSovereign ? 'SOVEREIGN AUTHORITY' : `Candidate 0${idx + 1}`}
+                                {c.isSovereign ? (mode === 'plain' ? 'YOUR TOP SKILL' : 'SOVEREIGN AUTHORITY') : `Candidate 0${idx + 1}`}
                             </div>
                             <div className="p-6 flex-grow">
                                 <div className="text-zinc-500 font-mono text-xs mb-2 uppercase">{c.originalVerb}</div>
@@ -150,11 +152,11 @@ export const ToolCompressionPhase: React.FC<{
                             disabled={synthesizingSovereign}
                             className="flex-1 mr-4"
                         >
-                            {synthesizingSovereign ? 'Synthesizing Authority...' : 'Refine into One Sovereign Authority'}
+                            {synthesizingSovereign ? (mode === 'plain' ? 'Combining...' : 'Synthesizing Authority...') : (mode === 'plain' ? 'Combine Into One Top Skill' : 'Refine into One Sovereign Authority')}
                         </Button>
                     ) : <div className="flex-1"></div>}
 
-                    <Button onClick={onNext}>Proceed to Evidence &rarr;</Button>
+                    <Button onClick={onNext}>{mode === 'plain' ? 'Next Step →' : 'Proceed to Evidence →'}</Button>
                 </div>
             </div>
         );
@@ -164,8 +166,8 @@ export const ToolCompressionPhase: React.FC<{
     return (
         <div className="max-w-4xl mx-auto w-full animate-fade-in">
             <SectionHeader
-                title="Phase 2: Skill Selection"
-                subtitle="Select 3 core activities. The AI will synthesize them into market roles."
+                title={mode === 'plain' ? `Step 2: Pick Your Top ${v.tool_plural}` : 'Phase 2: Skill Selection'}
+                subtitle={mode === 'plain' ? 'Choose 3 things you do best. We will figure out how to sell them.' : 'Select 3 core activities. The AI will synthesize them into market roles.'}
                 onBack={onBack}
             />
 
@@ -174,7 +176,7 @@ export const ToolCompressionPhase: React.FC<{
                 <div className="mb-6 p-4 border border-red-800/50 bg-red-900/10 space-y-3">
                     <div className="flex items-center justify-between">
                         <p className="text-xs font-mono text-red-400 uppercase">
-                            ⚠ ARMORY OVERLOADED: {armory.length} items (cap: {ARMORY_HARD_CAP})
+                            {mode === 'plain' ? `⚠ TOO MANY SKILLS: ${armory.length} (max: ${ARMORY_HARD_CAP})` : `⚠ ARMORY OVERLOADED: ${armory.length} items (cap: ${ARMORY_HARD_CAP})`}
                         </p>
                         <button
                             onClick={handleSuggestMerge}
@@ -185,7 +187,10 @@ export const ToolCompressionPhase: React.FC<{
                         </button>
                     </div>
                     <p className="text-[10px] text-zinc-500">
-                        The 80/20 rule: your top 20% of skills generate 80% of value. Compress or delete until ≤ {ARMORY_HARD_CAP}.
+                        {mode === 'plain'
+                            ? `Focus on the 20% of skills that create 80% of your value. Remove or merge until you have ${ARMORY_HARD_CAP} or fewer.`
+                            : `The 80/20 rule: your top 20% of skills generate 80% of value. Compress or delete until ≤ ${ARMORY_HARD_CAP}.`
+                        }
                     </p>
                 </div>
             )}
@@ -193,7 +198,7 @@ export const ToolCompressionPhase: React.FC<{
             {/* AI Merge Suggestions */}
             {mergeSuggestions.length > 0 && (
                 <div className="mb-6 space-y-3">
-                    <h4 className="text-[10px] uppercase text-yellow-500 font-mono tracking-widest">Compression Recommendations</h4>
+                    <h4 className="text-[10px] uppercase text-yellow-500 font-mono tracking-widest">{mode === 'plain' ? 'Suggested Combinations' : 'Compression Recommendations'}</h4>
                     {mergeSuggestions.map((s) => (
                         <div key={s.suggestedName} className="border border-yellow-800/30 bg-yellow-900/5 p-4">
                             <div className="flex flex-col gap-2">
@@ -255,12 +260,12 @@ export const ToolCompressionPhase: React.FC<{
                             <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                             Synthesizing Market Function...
                         </span>
-                    ) : 'Compress into Market Function'}
+                    ) : (mode === 'plain' ? 'Analyze My Top Skills' : 'Compress into Market Function')}
                 </Button>
             </div>
             {analyzing && (
                 <div className="text-center mt-4 text-xs font-mono text-zinc-500 animate-pulse">
-                    Applying 32k context reasoning to niche down...
+                    {mode === 'plain' ? 'Finding the best way to package your skills...' : 'Applying 32k context reasoning to niche down...'}
                 </div>
             )}
         </div>

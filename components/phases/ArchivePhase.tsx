@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SystemState, DossierSnapshot } from '../../types';
 import { Button } from '../Visuals';
+import { useVernacular } from '../../contexts/VernacularContext';
 
 interface ArchivePhaseProps {
     userId: string;
@@ -12,6 +13,7 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
     const [sessions, setSessions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const { v } = useVernacular();
 
     // Load sessions from Postgres API (falls back to localStorage for dev)
     useEffect(() => {
@@ -54,21 +56,21 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
         <div className="max-w-4xl mx-auto space-y-12">
             <div className="flex justify-between items-end border-b border-zinc-800 pb-8">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter uppercase">Dossier Archive</h1>
-                    <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em] mt-2">Accessing Persistent Protocol Nodes</p>
+                    <h1 className="text-4xl font-display font-black tracking-tighter uppercase">{v.archive_title}</h1>
+                    <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em] mt-2">{v.archive_subtitle}</p>
                 </div>
                 <Button onClick={onNew} className="px-8 py-3 bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors">
-                    Initialize New Protocol
+                    {v.archive_new_button}
                 </Button>
             </div>
 
             {loading ? (
                 <div className="py-20 text-center animate-pulse font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
-                    Decrypting Archive Files...
+                    {v.archive_loading}
                 </div>
             ) : sessions.length === 0 ? (
                 <div className="py-20 border border-dashed border-zinc-800 text-center rounded-sm">
-                    <p className="font-mono text-[10px] text-zinc-500 uppercase">No existing dossiers found in vault.</p>
+                    <p className="font-mono text-[10px] text-zinc-500 uppercase">{v.archive_empty}</p>
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -89,7 +91,7 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
                                         </div>
                                         <div className="text-[9px] font-mono text-zinc-600 uppercase mt-2 tracking-widest flex items-center gap-4">
                                             <span>Phase: {session.currentPhase}</span>
-                                            {session.clientName && <span className="text-zinc-400 bg-white/5 px-2 py-0.5 border border-zinc-800">SUBJECT: {session.clientName}</span>}
+                                            {session.clientName && <span className="text-zinc-400 bg-white/5 px-2 py-0.5 border border-zinc-800">{v.archive_subject_label}: {session.clientName}</span>}
                                             <span>Modified: {session.updatedAt ? new Date(session.updatedAt).toLocaleString() : 'UNKNOWN'}</span>
                                             {session.version > 0 && (
                                                 <span className={`px-2 py-0.5 border ${session.finalized ? 'border-emerald-800 text-emerald-400' : 'border-yellow-800 text-yellow-500'}`}>
@@ -147,7 +149,7 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
             )}
 
             <div className="text-[9px] font-mono text-zinc-700 uppercase p-4 border-t border-zinc-900 mt-20">
-                End of File List // All records are encrypted at rest
+                {v.archive_footer}
             </div>
         </div>
     );
