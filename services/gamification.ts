@@ -94,7 +94,26 @@ export function getSpiralBurnXp(burnCount: number): number {
 }
 
 // ============================================================
-// COMMITMENT CONTRACTS — Streak Multiplier & Decay
+// VERNACULAR RAMP — XP-Gated Language Modes
+// ============================================================
+// Users start in Plain. Richer language is earned through XP.
+//   Plain:      always available
+//   Industrial: unlocks at Level 3 (500 XP)
+//   Mythic:     unlocks at Level 6 (2000 XP)
+
+export const VERNACULAR_THRESHOLDS = {
+    plain: 0,
+    industrial: 500,
+    mythic: 2000,
+} as const;
+
+/** Get which vernacular modes are unlocked at a given XP */
+export function getUnlockedModes(xp: number): Array<'plain' | 'industrial' | 'mythic'> {
+    const modes: Array<'plain' | 'industrial' | 'mythic'> = ['plain'];
+    if (xp >= VERNACULAR_THRESHOLDS.industrial) modes.push('industrial');
+    if (xp >= VERNACULAR_THRESHOLDS.mythic) modes.push('mythic');
+    return modes;
+}
 // ============================================================
 
 /** Streak multiplier tiers:

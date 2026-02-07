@@ -18,7 +18,7 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
     const [confirmText, setConfirmText] = useState('');
     const { v } = useVernacular();
 
-    const isConfirmed = confirmText.trim().toLowerCase() === tool.plainName.trim().toLowerCase();
+    const isConfirmed = confirmText.trim().toLowerCase() === v.pyre_confirm_oath.toLowerCase();
 
     useEffect(() => {
         if (phase !== 'burning') return;
@@ -87,7 +87,7 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
                             type="text"
                             value={confirmText}
                             onChange={(e) => setConfirmText(e.target.value)}
-                            placeholder={tool.plainName}
+                            placeholder={v.pyre_confirm_oath}
                             className="w-full bg-zinc-900 border text-sm font-mono text-bone px-4 py-3 text-center tracking-wider transition-colors duration-200 outline-none"
                             style={{
                                 borderColor: isConfirmed ? '#EF4444' : '#27272a',

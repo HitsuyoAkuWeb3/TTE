@@ -127,15 +127,15 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
                     <div className="text-2xl font-black text-bone">{streak}</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Day Streak</div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">{v.ritual_streak}</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
                     <div className="text-2xl font-black text-emerald-400">${totalRevenue.toLocaleString()}</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Total Revenue</div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">{v.ritual_dashboard_revenue || 'Total Revenue'}</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
                     <div className="text-2xl font-black text-bone">{totalClients}</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Clients Reached</div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">{v.ritual_dashboard_clients || 'Clients Reached'}</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
                     <div className="text-2xl font-black text-bone">{totalOffers}</div>
@@ -143,7 +143,38 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                 </div>
             </div>
 
-            {/* Sovereign Context */}
+            {/* Signal Fidelity + Commitment Multiplier */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border border-zinc-800 bg-zinc-900/50 p-4">
+                    <div className="flex justify-between text-[9px] font-mono uppercase text-zinc-500 mb-2">
+                        <span>{v.ritual_signal_fidelity}</span>
+                        <span className="text-spirit">{Math.min(100, Math.round((entries.length / 30) * 100))}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-zinc-800 relative overflow-hidden">
+                        <div
+                            className="h-full bg-[#00FF41] transition-all duration-500"
+                            style={{ width: `${Math.min(100, Math.round((entries.length / 30) * 100))}%` }}
+                        />
+                    </div>
+                    <div className="text-[8px] text-zinc-600 mt-1 font-mono">{entries.length} / 30 entries</div>
+                </div>
+                <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex items-center justify-between">
+                    <div>
+                        <div className="text-[9px] font-mono uppercase text-zinc-500">{v.ritual_multiplier}</div>
+                        <div className="text-xl font-black text-bone mt-1">
+                            {streak >= 14 ? '2.0' : streak >= 7 ? '1.5' : streak >= 3 ? '1.25' : '1.0'}x
+                        </div>
+                    </div>
+                    <div className="text-[8px] font-mono text-zinc-600 text-right">
+                        {streak < 3 && 'Next: 3-day → 1.25x'}
+                        {streak >= 3 && streak < 7 && 'Next: 7-day → 1.5x'}
+                        {streak >= 7 && streak < 14 && 'Next: 14-day → 2.0x'}
+                        {streak >= 14 && '⚡ MAX MULTIPLIER'}
+                    </div>
+                </div>
+            </div>
+
+
             {tool && (
                 <div className="border border-[#00FF41]/20 bg-[#00FF41]/5 p-4 flex items-center justify-between">
                     <div>

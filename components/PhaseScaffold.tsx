@@ -103,7 +103,7 @@ export const PhaseScaffold: React.FC<PhaseScaffoldProps> = ({ phase, onProceed }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
-            <div className="bg-zinc-950 border border-zinc-700/40 rounded-lg max-w-md w-full p-6 space-y-5">
+            <div className="bg-void border border-zinc-700/40 rounded-lg max-w-md w-full p-6 space-y-5">
                 {/* Header */}
                 <div className="text-xs font-mono text-zinc-400 uppercase tracking-widest font-bold">
                     ◇ {v.scaffold_title || scaffold.title}

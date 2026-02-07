@@ -123,7 +123,7 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
-            <div className="bg-zinc-950 border border-amber-800/30 rounded-lg max-w-lg w-full p-6 space-y-5">
+            <div className="bg-void border border-amber-800/30 rounded-lg max-w-lg w-full p-6 space-y-5">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="text-xs font-mono text-amber-400 uppercase tracking-widest font-bold">

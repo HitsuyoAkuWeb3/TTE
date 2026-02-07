@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
+import { apiFetch, setTokenGetter } from './services/apiClient';
 import {
   Phase,
   SystemState,
@@ -11,9 +12,9 @@ import {
   OperatorProfile
 } from './types';
 import { generatePilotProtocol, updateCortex } from './services/geminiService';
-import { apiFetch } from './services/apiClient';
 import { logger } from './services/logger';
-import { LoadingRitual, ProgressBar } from './components/Visuals';
+import { ProgressBar } from './components/Visuals';
+import { CortexTerminal } from './components/CortexTerminal';
 import { RankBadge, XpToast } from './components/RankBadge';
 import { RankCeremony } from './components/RankCeremony';
 import { XP_AWARDS, getRank, getSpiralBurnXp, MythicRank } from './services/gamification';
@@ -36,11 +37,19 @@ import { Pyre } from './components/phases/Pyre';
 import { DaemonWhisper } from './components/DaemonWhisper';
 import { InterrogationModal } from './components/InterrogationModal';
 import { PhaseScaffold } from './components/PhaseScaffold';
+import { OrgSwitcherPanel } from './components/OrgSwitcher';
+import { OrgDashboard } from './components/OrgDashboard';
+import { useOrg } from './contexts/OrgContext';
 
 
 export default function App() {
   const { isLoaded: clerkLoaded, user: clerkUser } = useUser();
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
+
+  // Register Clerk's getToken with the API client for automatic JWT injection
+  React.useEffect(() => {
+    setTokenGetter(() => getToken());
+  }, [getToken]);
   
   // DEV BYPASS: Allow E2E tests to simulate a logged-in user without Clerk keys
   const isBypass = import.meta.env.DEV && globalThis.window !== undefined && new URLSearchParams(globalThis.location.search).get('test_user') === 'true';
@@ -63,6 +72,8 @@ export default function App() {
   const [prevRankLevel, setPrevRankLevel] = useState(() => getRank(INITIAL_STATE.xp).level);
   const [interrogation, setInterrogation] = useState<{ phase: Phase; context: Record<string, string> } | null>(null);
   const { v } = useVernacular();
+  const { isOrgMode } = useOrg();
+  const [showOrgDashboard, setShowOrgDashboard] = useState(false);
 
   // XP award helper — updates state + shows toast
   const awardXp = useCallback((amount: number, reason: string) => {
@@ -98,7 +109,7 @@ export default function App() {
     if (!user) return;
     (async () => {
       try {
-        const res = await apiFetch('/api/db/profile', { headers: { 'x-clerk-user-id': user.id } });
+        const res = await apiFetch('/api/db/profile');
         if (res.ok) {
           const profile = await res.json();
           setState(s => ({ ...s, profile: profile.data || profile }));
@@ -151,7 +162,7 @@ export default function App() {
     try {
       await apiFetch('/api/db/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-clerk-user-id': user.id },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: fullProfile }),
       });
     } catch { /* API unavailable */ }
@@ -201,7 +212,7 @@ export default function App() {
       try {
         await apiFetch('/api/db/sessions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-clerk-user-id': user.id },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: sessionId,
             data: saveData,
@@ -229,7 +240,7 @@ export default function App() {
   if ((!clerkLoaded && !isBypass)) {
     return (
       <div className="min-h-screen bg-void flex items-center justify-center">
-        <LoadingRitual />
+        <CortexTerminal phase="intro" />
       </div>
     );
   }
@@ -306,6 +317,18 @@ export default function App() {
                 </button>
               )}
 
+              {user && isOrgMode && (
+                <button
+                  onClick={() => {
+                    setShowOrgDashboard(true);
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-[10px] font-mono text-spirit hover:text-bone hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
+                >
+                  ◆ ORG DASHBOARD
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   signOut();
@@ -318,12 +341,25 @@ export default function App() {
             </div>
           )}
         </div>
+        <OrgSwitcherPanel />
         <RankBadge xp={state.xp} />
       </div>
 
       <ProgressBar current={getProgress()} total={100} />
 
       <main className="container mx-auto px-4 py-16 md:py-24">
+        {showOrgDashboard && isOrgMode ? (
+          <div>
+            <button
+              onClick={() => setShowOrgDashboard(false)}
+              className="mb-8 text-[10px] font-mono text-zinc-500 hover:text-bone border border-zinc-800 px-3 py-1.5 transition-colors uppercase tracking-wider"
+            >
+              ← BACK TO SESSION
+            </button>
+            <OrgDashboard />
+          </div>
+        ) : (
+          <>
         {state.currentPhase === Phase.INTRO && (
           <IntroPhase onStart={(name) => setState(s => ({ ...s, clientName: name, currentPhase: Phase.ARMORY_AUDIT }))} />
         )}
@@ -497,6 +533,8 @@ export default function App() {
             onAwardXp={awardXp}
             onCremate={handleCremate}
           />
+        )}
+        </>
         )}
       </main>
 

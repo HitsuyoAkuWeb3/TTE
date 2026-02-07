@@ -19,6 +19,17 @@ type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 let circuitState: CircuitState = 'CLOSED';
 let openedAt = 0;
 
+// Token getter — set by the app once Clerk is loaded
+let _getToken: (() => Promise<string | null>) | null = null;
+
+/**
+ * Register the Clerk token getter. Called once from App.tsx
+ * after Clerk initializes.
+ */
+export function setTokenGetter(getter: () => Promise<string | null>) {
+  _getToken = getter;
+}
+
 function trip() {
   circuitState = 'OPEN';
   openedAt = Date.now();
@@ -38,7 +49,8 @@ function isConnectionError(err: unknown): boolean {
 }
 
 /**
- * Drop-in replacement for `fetch()` with circuit-breaker protection.
+ * Drop-in replacement for `fetch()` with circuit-breaker protection
+ * and automatic JWT auth header injection.
  * Same signature as the global `fetch`.
  */
 export async function apiFetch(
@@ -59,9 +71,25 @@ export async function apiFetch(
     circuitState = 'HALF_OPEN';
   }
 
+  // --- Inject auth token ---
+  const headers = new Headers(init?.headers);
+  if (_getToken && !headers.has('Authorization')) {
+    try {
+      const token = await _getToken();
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+    } catch {
+      // Token retrieval failed — proceed without auth
+      // (the server will return 401 if auth is required)
+    }
+  }
+
+  const authedInit: RequestInit = { ...init, headers };
+
   // --- Attempt the request ---
   try {
-    const res = await fetch(input, init);
+    const res = await fetch(input, authedInit);
 
     // A 503 from our own Vite proxy error handler means backend is down
     if (res.status === 503) {

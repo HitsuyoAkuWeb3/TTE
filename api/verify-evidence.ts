@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, type AuthedRequest } from './middleware/auth';
 
 // ============================================================
 // URL EVIDENCE VERIFICATION — Server-Side Fetch + Analysis
@@ -6,7 +7,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Fetches a URL server-side (avoiding CORS) and checks if
 // the page content supports the claimed evidence.
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthedRequest, res: VercelResponse) => {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -125,4 +126,4 @@ Respond in JSON only:
             reason: `Verification failed: ${error.message}`,
         });
     }
-}
+});

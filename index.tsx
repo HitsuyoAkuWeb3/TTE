@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { VernacularProvider } from './contexts/VernacularContext';
+import { OrgProvider } from './contexts/OrgContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import App from './App';
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -18,10 +20,14 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={CLERK_KEY}>
-      <VernacularProvider>
-        <App />
-      </VernacularProvider>
-    </ClerkProvider>
+    <ErrorBoundary>
+      <ClerkProvider publishableKey={CLERK_KEY}>
+        <OrgProvider>
+          <VernacularProvider>
+            <App />
+          </VernacularProvider>
+        </OrgProvider>
+      </ClerkProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

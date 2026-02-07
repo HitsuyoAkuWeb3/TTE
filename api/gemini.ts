@@ -1,5 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
+import { withAuth, type AuthedRequest } from './middleware/auth';
 
 // ============================================================
 // GEMINI PROXY — Server-Side API Route
@@ -14,7 +15,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withAuth(async (req: AuthedRequest, res: VercelResponse) => {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -65,4 +66,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             shouldFallback: true,
         });
     }
-}
+});

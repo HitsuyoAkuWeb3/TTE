@@ -2,9 +2,10 @@ import { GoogleGenAI, Type, Schema, Modality, LiveServerMessage } from "@google/
 import { AIAnalysisResult, ToolCandidate, OperatorProfile, TheoryOfValue, SystemState, SignalFidelityResult } from "../types";
 import { AI_MODELS, THINKING_BUDGETS } from "../config/AIModels";
 import { sanitizeInput } from './sanitizer';
+import { logger } from './logger';
 
 const apiKey = process.env.API_KEY || '';
-console.log('[DEBUG] API Key present:', !!apiKey, 'Length:', apiKey.length);
+
 
 // SDK client — only used for Live API (WebSocket). Text generation goes through /api/gemini proxy.
 const ai = new GoogleGenAI({ apiKey });
@@ -256,7 +257,7 @@ export const disconnectLiveSession = async () => {
   if (currentSession) {
     try {
       currentSession.close();
-      console.log("Live session closed.");
+      logger.debug('LIVE', 'Session closed.');
     } catch (e) {
       console.warn("Error closing Live session:", e);
     }
@@ -308,7 +309,7 @@ export const connectLiveSession = async () => {
     model: AI_MODELS.audio.primary.id,
     callbacks: {
       onopen: () => {
-        console.log("Live Session Opened");
+        logger.debug('LIVE', 'Session opened');
         if (!inputAudioContext) return;
 
         // Load Worklet
@@ -366,7 +367,7 @@ export const connectLiveSession = async () => {
         }
       },
       onerror: (e) => console.error("Live API Error", e),
-      onclose: () => console.log("Live Session Closed")
+      onclose: () => logger.debug('LIVE', 'Session closed')
     },
     config: {
       responseModalities: [Modality.AUDIO],
@@ -726,7 +727,7 @@ export const conductMvaRadar = async (
     Use Google Search to find current, high-fidelity data.
   `;
 
-  console.log("[RADAR] Initializing forensic scan for:", toolName);
+  logger.info('RADAR', 'Initializing forensic scan for:', toolName);
 
   try {
     // Stage 1: Search & Evidence Extraction (No JSON Constraint)
@@ -738,7 +739,7 @@ export const conductMvaRadar = async (
     });
 
     const evidence = searchResponse.text || "No direct forum evidence found. Proceeding with architectural extrapolation.";
-    console.log("[RADAR] Evidence collected, synthesizing forensic report...");
+    logger.info('RADAR', 'Evidence collected, synthesizing forensic report...');
 
     // Stage 2: Synthesis & JSON Structuring (No Search Tool)
     const synthesisResponse = await generateWithFallback({
@@ -770,7 +771,7 @@ export const conductMvaRadar = async (
     }
 
     const result = JSON.parse(synthesisResponse.text);
-    console.log("[RADAR] Scan successful");
+    logger.info('RADAR', 'Scan successful');
     return result;
   } catch (error: any) {
     console.error("[RADAR] Critical failure during scan:", error);
@@ -813,7 +814,7 @@ export const generateTheoryOfValue = async (
 
   // ── PASS 1: Generate Draft Theory ──────────────────────────
   onProgress?.("Synthesizing draft Theory of Value...");
-  console.log("[TOV] Pass 1: Generating draft...");
+  logger.info('TOV', 'Pass 1: Generating draft...');
 
   const draftPrompt = `
     Construct a "Theory of Value" for the tool "${tool.plainName}".
@@ -842,11 +843,11 @@ export const generateTheoryOfValue = async (
   }, THINKING_BUDGETS.theoryOfValue);
 
   const draft = JSON.parse(draftResponse.text || "{}");
-  console.log("[TOV] Pass 1 complete. Draft offer:", draft.godfatherOffer?.name);
+  logger.info('TOV', 'Pass 1 complete. Draft offer:', draft.godfatherOffer?.name);
 
   // ── PASS 2: Devil's Advocate Self-Critique ────────────────
   onProgress?.("Auditing logic... Running adversarial refinement...");
-  console.log("[TOV] Pass 2: Devil's Advocate critique...");
+  logger.info('TOV', "Pass 2: Devil's Advocate critique...");
 
   const critiquePrompt = `
     ADVERSARIAL AUDIT — THEORY OF VALUE
@@ -885,7 +886,7 @@ export const generateTheoryOfValue = async (
     }, THINKING_BUDGETS.theoryOfValue);
 
     const refined = JSON.parse(refinedResponse.text || "{}");
-    console.log("[TOV] Pass 2 complete. Final offer:", refined.godfatherOffer?.name);
+    logger.info('TOV', 'Pass 2 complete. Final offer:', refined.godfatherOffer?.name);
     onProgress?.("Theory forged.");
     return refined;
   } catch (error) {
@@ -964,7 +965,7 @@ export const challengeScore = async (
     }, THINKING_BUDGETS.challengeScore);
 
     const result = JSON.parse(response.text || "{}");
-    console.log("[CHALLENGER] Verdict:", result.isJustified ? "JUSTIFIED" : "DOWNGRADE", result.suggestedScore);
+    logger.info('CHALLENGER', 'Verdict:', result.isJustified ? 'JUSTIFIED' : 'DOWNGRADE', result.suggestedScore);
     return result as ChallengeResult;
   } catch (error) {
     console.error("[CHALLENGER] Failed:", error);
@@ -1039,7 +1040,7 @@ export const generateStarterDeck = async (
     }, THINKING_BUDGETS.starterDeck);
 
     const cards = JSON.parse(response.text || "[]");
-    console.log("[DECK] Generated", cards.length, "starter cards for", industry);
+    logger.info('DECK', 'Generated', cards.length, 'starter cards for', industry);
     return cards as StarterCard[];
   } catch (error) {
     console.error("[DECK] Failed:", error);
@@ -1109,7 +1110,7 @@ export const suggestMerge = async (
     }, THINKING_BUDGETS.starterDeck); // reuse starterDeck budget
 
     const suggestions = JSON.parse(response.text || "[]");
-    console.log("[COMPRESS] Generated", suggestions.length, "merge suggestions");
+    logger.info('COMPRESS', 'Generated', suggestions.length, 'merge suggestions');
     return suggestions as MergeSuggestion[];
   } catch (error) {
     console.error("[COMPRESS] Failed:", error);

@@ -184,6 +184,7 @@ export interface VernacularDictionary {
     pyre_cancel: string;
     pyre_confirm_prompt: string;
     pyre_confirm_mismatch: string;
+    pyre_confirm_oath: string;
     pyre_ignite: string;
     pyre_progress_label: string;
     pyre_complete: string;
@@ -285,6 +286,12 @@ export interface VernacularDictionary {
 
     // ── Ritual Dashboard ─────────────────────────────
     ritual_reaudit_button: string;
+    ritual_streak: string;
+    ritual_signal_fidelity: string;
+    ritual_multiplier: string;
+
+    // ── Cortex Terminal ──────────────────────────────
+    cortex_status: string;
 }
 
 const MYTHIC: VernacularDictionary = {
@@ -449,8 +456,9 @@ const MYTHIC: VernacularDictionary = {
     pyre_target_label: 'Weapon to Burn',
     pyre_description: 'This tool no longer serves the mission. Burning it clears space for a new Starting Tool. This action archives the tool permanently.',
     pyre_cancel: 'Stand Down',
-    pyre_confirm_prompt: 'TYPE THE ASSET NAME TO CONFIRM CREMATION',
-    pyre_confirm_mismatch: 'DESIGNATION MISMATCH — IGNITION LOCKED',
+    pyre_confirm_prompt: 'TYPE THE OATH BELOW TO CONFIRM CREMATION',
+    pyre_confirm_mismatch: 'DESIGNATION MISMATCH — TYPE AGAIN',
+    pyre_confirm_oath: 'I acknowledge this asset is now ash',
     pyre_ignite: '🔥 Ignite the Pyre',
     pyre_progress_label: 'Burning',
     pyre_complete: 'Archived. Space cleared for evolution.',
@@ -553,6 +561,10 @@ const MYTHIC: VernacularDictionary = {
 
     // Ritual Dashboard
     ritual_reaudit_button: 'Re-Run Audit →',
+    ritual_streak: 'Oath Streak',
+    ritual_signal_fidelity: 'Signal Fidelity',
+    ritual_multiplier: 'Commitment Multiplier',
+    cortex_status: 'SOVEREIGN CORTEX PROCESSING',
 };
 
 const INDUSTRIAL: VernacularDictionary = {
@@ -717,8 +729,9 @@ const INDUSTRIAL: VernacularDictionary = {
     pyre_target_label: 'Asset to Retire',
     pyre_description: 'This asset no longer aligns with your strategy. Retiring it clears space for a new primary asset.',
     pyre_cancel: 'Cancel',
-    pyre_confirm_prompt: 'TYPE TOOL NAME TO CONFIRM DECOMMISSION',
-    pyre_confirm_mismatch: 'NAME MISMATCH — ACTION LOCKED',
+    pyre_confirm_prompt: 'TYPE THE PHRASE BELOW TO CONFIRM DECOMMISSION',
+    pyre_confirm_mismatch: 'INPUT MISMATCH — RETYPE',
+    pyre_confirm_oath: 'I confirm this tool is decommissioned',
     pyre_ignite: '🔥 Retire Asset',
     pyre_progress_label: 'Retiring',
     pyre_complete: 'Retired. Capacity freed for new assets.',
@@ -821,6 +834,10 @@ const INDUSTRIAL: VernacularDictionary = {
 
     // Ritual Dashboard
     ritual_reaudit_button: 'Re-Run Assessment →',
+    ritual_streak: 'Active Streak',
+    ritual_signal_fidelity: 'Signal Fidelity',
+    ritual_multiplier: 'Streak Multiplier',
+    cortex_status: 'ENGINE PROCESSING',
 };
 
 const PLAIN: VernacularDictionary = {
@@ -985,8 +1002,9 @@ const PLAIN: VernacularDictionary = {
     pyre_target_label: 'Skill to Remove',
     pyre_description: 'This skill no longer fits your goals. Removing it clears space for something better. This action is permanent.',
     pyre_cancel: 'Cancel',
-    pyre_confirm_prompt: 'Type the skill name to confirm removal',
-    pyre_confirm_mismatch: 'Name does not match — button locked',
+    pyre_confirm_prompt: 'Type the phrase below to confirm removal',
+    pyre_confirm_mismatch: 'That doesn\'t match — try again',
+    pyre_confirm_oath: 'I confirm this skill is removed',
     pyre_ignite: '🔥 Remove Skill',
     pyre_progress_label: 'Removing',
     pyre_complete: 'Removed. Space cleared for new skills.',
@@ -1089,6 +1107,10 @@ const PLAIN: VernacularDictionary = {
 
     // Ritual Dashboard
     ritual_reaudit_button: 'Re-Run Audit →',
+    ritual_streak: 'Day Streak',
+    ritual_signal_fidelity: 'Progress Score',
+    ritual_multiplier: 'Bonus Multiplier',
+    cortex_status: 'PROCESSING',
 };
 
 const DICTIONARIES: Record<VernacularMode, VernacularDictionary> = {
@@ -1106,9 +1128,9 @@ interface VernacularContextType {
 }
 
 const VernacularContext = createContext<VernacularContextType>({
-    mode: 'mythic',
+    mode: 'plain',
     setMode: () => { },
-    v: MYTHIC,
+    v: PLAIN,
 });
 
 export const VernacularProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -1117,7 +1139,7 @@ export const VernacularProvider: React.FC<{ children: ReactNode }> = ({ children
             const saved = localStorage.getItem('tte_vernacular_mode');
             if (saved === 'mythic' || saved === 'industrial' || saved === 'plain') return saved;
         } catch { /* no localStorage */ }
-        return 'mythic';
+        return 'plain';
     });
 
     const setMode = (m: VernacularMode) => {
@@ -1140,29 +1162,38 @@ export const useVernacular = () => useContext(VernacularContext);
 
 // ── Convenience Toggle Component ──────────────────────────
 
-export const VernacularToggle: React.FC = () => {
+export const VernacularToggle: React.FC<{ xp?: number }> = ({ xp }) => {
     const { mode, setMode } = useVernacular();
 
-    const modes: { key: VernacularMode; icon: string; label: string }[] = [
-        { key: 'plain', icon: '🛠', label: 'Builder' },
-        { key: 'industrial', icon: '⚙', label: 'Strategist' },
-        { key: 'mythic', icon: '⚔', label: 'Architect' },
+    const modes: { key: VernacularMode; icon: string; label: string; threshold: number }[] = [
+        { key: 'plain', icon: '🛠', label: 'Builder', threshold: 0 },
+        { key: 'industrial', icon: '⚙', label: 'Strategist', threshold: 500 },
+        { key: 'mythic', icon: '⚔', label: 'Architect', threshold: 2000 },
     ];
 
     return (
         <div className="flex items-center gap-2 text-xs font-mono">
-            {modes.map(m => (
-                <button
-                    key={m.key}
-                    onClick={() => setMode(m.key)}
-                    className={`px-3 py-1.5 border transition-all ${mode === m.key
-                        ? 'border-white text-bone bg-white/10'
-                        : 'border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
+            {modes.map(m => {
+                const isLocked = xp !== undefined && xp < m.threshold;
+                return (
+                    <button
+                        key={m.key}
+                        onClick={() => !isLocked && setMode(m.key)}
+                        disabled={isLocked}
+                        title={isLocked ? `Unlocks at ${m.threshold} XP` : m.label}
+                        className={`px-3 py-1.5 border transition-all ${
+                            isLocked
+                                ? 'border-zinc-900 text-zinc-700 cursor-not-allowed opacity-40'
+                                : mode === m.key
+                                    ? 'border-white text-bone bg-white/10'
+                                    : 'border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
                         }`}
-                >
-                    {m.icon} {m.label}
-                </button>
-            ))}
+                    >
+                        {isLocked ? '🔒' : m.icon} {m.label}
+                        {isLocked && <span className="ml-1 text-[8px] text-zinc-600">{m.threshold}XP</span>}
+                    </button>
+                );
+            })}
         </div>
     );
 };

@@ -1,14 +1,13 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelResponse } from '@vercel/node';
+import { withAuth, type AuthedRequest } from '../middleware/auth';
 import { getDb } from './_db';
 
 // ============================================================
 // SNAPSHOT CRUD — Version History (Append-Only)
 // ============================================================
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const userId = req.headers['x-clerk-user-id'] as string;
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
+export default withAuth(async (req: AuthedRequest, res: VercelResponse) => {
+    const { userId } = req.auth;
     const sql = getDb();
 
     // GET /api/db/snapshots?sessionId=xxx — List snapshots for a session
@@ -49,4 +48,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-}
+});

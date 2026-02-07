@@ -3,6 +3,7 @@ import { SystemState, DossierSnapshot, Phase, ToolCandidate } from '../../types'
 import { Button } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
 import { apiFetch } from '../../services/apiClient';
+import { useOrg } from '../../contexts/OrgContext';
 
 interface ArchivePhaseProps {
     userId: string;
@@ -26,13 +27,16 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const { v } = useVernacular();
+    const { isOrgMode, orgId, orgName } = useOrg();
+    const [viewTab, setViewTab] = useState<'personal' | 'org'>('personal');
+    const [orgSessions, setOrgSessions] = useState<SessionRecord[]>([]);
 
     // Load sessions from Postgres API (falls back to localStorage for dev)
     useEffect(() => {
         (async () => {
             // Try API first
             try {
-                const res = await apiFetch('/api/db/sessions', { headers: { 'x-clerk-user-id': userId } });
+                const res = await apiFetch('/api/db/sessions');
                 if (res.ok) {
                     const { sessions: apiSessions } = await res.json();
                     if (apiSessions?.length > 0) {
@@ -58,13 +62,31 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
         })();
     }, [userId]);
 
+    // Fetch org sessions when in org mode
+    useEffect(() => {
+        if (!isOrgMode || !orgId) return;
+        apiFetch(`/api/db/org-sessions?orgId=${orgId}`)
+            .then(r => r.ok ? r.json() : { sessions: [] })
+            .then(data => setOrgSessions((data.sessions || []).map((s: any) => ({
+                id: s.id,
+                currentPhase: Phase.ARCHIVE,
+                selectedToolId: null,
+                candidates: [],
+                clientName: `Shared by ${(s.created_by || '').slice(0, 8)}...`,
+                updatedAt: new Date(s.updated_at).getTime(),
+                version: s.version,
+                finalized: s.finalized,
+            }))))
+            .catch(() => setOrgSessions([]));
+    }, [isOrgMode, orgId]);
+
     const getSnapshots = (sessionId: string): DossierSnapshot[] => {
         try {
             return JSON.parse(localStorage.getItem(`dossier_history_${sessionId}`) || '[]');
         } catch { return []; }
     };
 
-    const renderContent = () => {
+    const renderContent = (sessionList: SessionRecord[]) => {
         if (loading) {
             return (
                 <div className="py-20 text-center animate-pulse font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
@@ -73,7 +95,7 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
             );
         }
 
-        if (sessions.length === 0) {
+        if (sessionList.length === 0) {
             return (
                 <div className="relative py-20 border-2 border-zinc-700 text-center">
                     <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-bone"></div>
@@ -87,7 +109,7 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
 
         return (
             <div className="grid gap-4">
-                {sessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map((session) => {
+                {sessionList.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map((session) => {
                     const snapshots = getSnapshots(session.id);
                     const isExpanded = expandedId === session.id;
 
@@ -175,7 +197,33 @@ export const ArchivePhase: React.FC<ArchivePhaseProps> = ({ userId, onSelect, on
                 </Button>
             </div>
 
-            {renderContent()}
+            {/* Org/Personal Tab Bar */}
+            {isOrgMode && (
+                <div className="flex gap-6 border-b border-zinc-900">
+                    <button
+                        onClick={() => setViewTab('personal')}
+                        className={`px-4 py-2 text-[10px] font-mono uppercase tracking-widest border-b-2 transition-colors ${
+                            viewTab === 'personal'
+                                ? 'border-bone text-bone'
+                                : 'border-transparent text-zinc-600 hover:text-zinc-400'
+                        }`}
+                    >
+                        PERSONAL ({sessions.length})
+                    </button>
+                    <button
+                        onClick={() => setViewTab('org')}
+                        className={`px-4 py-2 text-[10px] font-mono uppercase tracking-widest border-b-2 transition-colors ${
+                            viewTab === 'org'
+                                ? 'border-spirit text-spirit'
+                                : 'border-transparent text-zinc-600 hover:text-zinc-400'
+                        }`}
+                    >
+                        {orgName || 'ORG'} ({orgSessions.length})
+                    </button>
+                </div>
+            )}
+
+            {viewTab === 'personal' || !isOrgMode ? renderContent(sessions) : renderContent(orgSessions)}
 
             <div className="text-[9px] font-mono text-zinc-700 uppercase p-4 border-t border-zinc-900 mt-20">
                 {v.archive_footer}

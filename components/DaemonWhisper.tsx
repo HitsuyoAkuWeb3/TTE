@@ -109,7 +109,7 @@ export const DaemonWhisper: React.FC<DaemonWhisperProps> = ({ phase, profile, to
         <div
             className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40
                 max-w-md px-5 py-3 
-                bg-zinc-950/90 backdrop-blur-sm
+                bg-void/90 backdrop-blur-sm
                 border ${style.border} rounded
                 transition-all duration-1000 ease-in-out
                 animate-fade-in

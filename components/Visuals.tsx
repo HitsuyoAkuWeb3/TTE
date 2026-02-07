@@ -9,7 +9,7 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
   const baseStyle = "font-mono text-sm px-6 py-3 uppercase tracking-wider transition-all duration-200 border disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
     primary: "bg-bone text-void border-2 border-bone font-bold shadow-hard hover:shadow-hard-white hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0 active:shadow-hard",
-    secondary: "bg-void text-bone border-2 border-zinc-700 hover:border-bone hover:shadow-hard",
+    secondary: "bg-void text-bone border-2 border-zinc-700 hover:border-bone hover:shadow-hard-white hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0 active:shadow-none",
     danger: "bg-void text-[#FF3333] border-2 border-[#FF3333] hover:bg-[#FF3333]/10 hover:shadow-hard-hazard hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0",
     gold: "bg-void text-[#00FF41] border-2 border-[#00FF41] hover:bg-[#00FF41]/10 hover:shadow-hard-spirit"
   };
@@ -305,14 +305,3 @@ export const RitualSuccess: React.FC<{ title: string, message?: string }> = ({ t
   </div>
 );
 
-export const LoadingRitual: React.FC<{ status?: string }> = ({ status = "ESTABLISHING NEURAL LINK..." }) => (
-  <div className="flex flex-col items-center justify-center gap-4 animate-pulse">
-    <div className="relative">
-      <div className="w-3 h-3 bg-[#00FF41] rounded-full animate-ping absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      <div className="w-2 h-2 bg-[#00FF41] rounded-full relative z-10" />
-    </div>
-    <div className="text-xs font-mono text-[#00FF41] uppercase tracking-[0.2em]">
-      {status}
-    </div>
-  </div>
-);
