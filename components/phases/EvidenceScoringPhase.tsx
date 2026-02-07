@@ -153,7 +153,7 @@ export const EvidenceScoringPhase: React.FC<{
     const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
     const [challengeContext, setChallengeContext] = useState<{ key: string; dimension: string } | null>(null);
     const [isChallengingScore, setIsChallengingScore] = useState(false);
-    const { mode, v } = useVernacular();
+    const { v } = useVernacular();
 
     const activeCandidate = candidates[activeIndex];
 
@@ -265,7 +265,7 @@ export const EvidenceScoringPhase: React.FC<{
         <div className="max-w-3xl mx-auto w-full animate-fade-in">
             <SectionHeader
                 title={`${v.phase_label} 3: ${v.phase_scoring}`}
-                subtitle={mode === 'plain' ? 'Rate how strong each skill really is. Be honest.' : 'Evidence Gates. High claims require high proof.'}
+                subtitle={v.scoring_subtitle}
                 onBack={onBack}
             />
 
@@ -302,7 +302,7 @@ export const EvidenceScoringPhase: React.FC<{
             {isChallengingScore && (
                 <div className="mb-6 p-3 border border-red-900/30 bg-red-900/5 animate-pulse">
                     <span className="text-xs font-mono text-red-400 uppercase tracking-wider">
-                        {mode === 'plain' ? '⚡ Checking your claim...' : '⚡ Adversarial Auditor scanning your claim...'}
+                        {v.scoring_challenging}
                     </span>
                 </div>
             )}
@@ -319,7 +319,7 @@ export const EvidenceScoringPhase: React.FC<{
                     />
                     {activeCandidate.scores.unbiddenRequests >= 3 && (
                         <div className="mt-4 animate-fade-in">
-                            <label htmlFor="proof-unbidden" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste messages, emails, or requests' : 'Evidence Required — Paste DMs, Emails, or Requests'}</label>
+                            <label htmlFor="proof-unbidden" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{v.scoring_proof_unbidden}</label>
                             <textarea
                                 id="proof-unbidden"
                                 className="w-full bg-zinc-900 border border-zinc-700 text-bone p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
@@ -355,7 +355,7 @@ export const EvidenceScoringPhase: React.FC<{
                     />
                     {activeCandidate.scores.resultEvidence >= 3 && (
                         <div className="mt-4 animate-fade-in">
-                            <label htmlFor="proof-result" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste a testimonial or result' : 'Evidence Required — Paste Testimonial or Metric'}</label>
+                            <label htmlFor="proof-result" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{v.scoring_proof_result}</label>
                             <textarea
                                 id="proof-result"
                                 className="w-full bg-zinc-900 border border-zinc-700 text-bone p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
@@ -378,9 +378,7 @@ export const EvidenceScoringPhase: React.FC<{
                         isRisk={true}
                     />
                     <p className="text-[10px] font-mono text-zinc-600 mt-2">
-                        {mode === 'plain'
-                            ? 'HIGH = You have to do it yourself (a job). LOW = It works without you (an asset).'
-                            : 'HIGH = You ARE the product (job). LOW = The product works without you (asset).'}
+                        {v.scoring_risk_explanation}
                     </p>
                 </div>
             </div>
@@ -392,7 +390,7 @@ export const EvidenceScoringPhase: React.FC<{
                     </span>
                 )}
                 <Button onClick={onNext} disabled={!isComplete}>
-                    {mode === 'plain' ? 'Done → Pick Your Best Skill' : 'Audit Complete → Lock Tool'}
+                    {v.scoring_proceed}
                 </Button>
             </div>
         </div>

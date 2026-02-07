@@ -202,6 +202,24 @@ interface VernacularDictionary {
     unknown_subject: string;
     label_pts: string;
     phase_label: string; // 'Phase' or 'Step'
+
+    // ── Armory Audit Phase (inline) ───────────────────
+    armory_subtitle: string;
+    armory_view_spatial: string;
+    armory_view_terminal: string;
+    armory_list_title: string;
+    armory_empty_spatial: string;
+    armory_empty_terminal: string;
+    armory_status_label: string;
+    armory_proceed: string;
+
+    // ── Evidence Scoring Phase (inline) ───────────────
+    scoring_subtitle: string;
+    scoring_challenging: string;
+    scoring_proof_unbidden: string;
+    scoring_proof_result: string;
+    scoring_risk_explanation: string;
+    scoring_proceed: string;
 }
 
 const MYTHIC: VernacularDictionary = {
@@ -387,6 +405,24 @@ const MYTHIC: VernacularDictionary = {
     unknown_subject: 'Unknown Subject',
     label_pts: 'PTS',
     phase_label: 'Phase',
+
+    // Armory Audit
+    armory_subtitle: 'List every recurring activity. Verbs only. No metaphors.',
+    armory_view_spatial: 'Spatial Forge',
+    armory_view_terminal: 'Terminal Audit',
+    armory_list_title: 'My Armory',
+    armory_empty_spatial: 'Armory empty. Add at least 3 items to map your arsenal.',
+    armory_empty_terminal: 'Armory empty. Start adding items above.',
+    armory_status_label: 'items',
+    armory_proceed: 'Proceed to Compression →',
+
+    // Evidence Scoring
+    scoring_subtitle: 'Evidence Gates. High claims require high proof.',
+    scoring_challenging: '⚡ Adversarial Auditor scanning your claim...',
+    scoring_proof_unbidden: 'Evidence Required — Paste DMs, Emails, or Requests',
+    scoring_proof_result: 'Evidence Required — Paste Testimonial or Metric',
+    scoring_risk_explanation: 'HIGH = You ARE the product (job). LOW = The product works without you (asset).',
+    scoring_proceed: 'Audit Complete → Lock Tool',
 };
 
 const INDUSTRIAL: VernacularDictionary = {
@@ -572,6 +608,24 @@ const INDUSTRIAL: VernacularDictionary = {
     unknown_subject: 'Unknown Organization',
     label_pts: 'PTS',
     phase_label: 'Phase',
+
+    // Armory Audit
+    armory_subtitle: 'Log every recurring professional activity. Action verbs only.',
+    armory_view_spatial: 'Grid View',
+    armory_view_terminal: 'Table View',
+    armory_list_title: 'My Assets',
+    armory_empty_spatial: 'No assets logged. Add at least 3 to generate your map.',
+    armory_empty_terminal: 'No assets yet. Start adding above.',
+    armory_status_label: 'assets',
+    armory_proceed: 'Proceed to Performance Audit →',
+
+    // Evidence Scoring
+    scoring_subtitle: 'Score each asset against performance benchmarks.',
+    scoring_challenging: '⚡ Validating claim against benchmark...',
+    scoring_proof_unbidden: 'Evidence Required — Paste Inbound Communications',
+    scoring_proof_result: 'Evidence Required — Paste Case Study or Metric',
+    scoring_risk_explanation: 'HIGH = Revenue requires your presence. LOW = Revenue persists without you.',
+    scoring_proceed: 'Audit Complete → Select Asset',
 };
 
 const PLAIN: VernacularDictionary = {
@@ -757,6 +811,24 @@ const PLAIN: VernacularDictionary = {
     unknown_subject: 'Unknown Person',
     label_pts: 'POINTS',
     phase_label: 'Step',
+
+    // Armory Audit
+    armory_subtitle: 'List everything you do regularly. Use action words.',
+    armory_view_spatial: 'Visual Map',
+    armory_view_terminal: 'List View',
+    armory_list_title: 'My Skills',
+    armory_empty_spatial: 'No skills added yet. Add at least 3 to see your map.',
+    armory_empty_terminal: 'No skills yet. Start adding above.',
+    armory_status_label: 'skills',
+    armory_proceed: 'Next Step →',
+
+    // Evidence Scoring
+    scoring_subtitle: 'Rate how strong each skill really is. Be honest.',
+    scoring_challenging: '⚡ Checking your claim...',
+    scoring_proof_unbidden: 'Show proof — paste messages, emails, or requests',
+    scoring_proof_result: 'Show proof — paste a testimonial or result',
+    scoring_risk_explanation: 'HIGH = You have to do it yourself (a job). LOW = It works without you (an asset).',
+    scoring_proceed: 'Done → Pick Your Best Skill',
 };
 
 const DICTIONARIES: Record<VernacularMode, VernacularDictionary> = {
@@ -793,8 +865,12 @@ export const VernacularProvider: React.FC<{ children: ReactNode }> = ({ children
         try { localStorage.setItem('tte_vernacular_mode', m); } catch { /* */ }
     };
 
+    const contextValue = React.useMemo(() => ({
+        mode, setMode, v: DICTIONARIES[mode]
+    }), [mode]);
+
     return (
-        <VernacularContext.Provider value={{ mode, setMode, v: DICTIONARIES[mode] }}>
+        <VernacularContext.Provider value={contextValue}>
             {children}
         </VernacularContext.Provider>
     );

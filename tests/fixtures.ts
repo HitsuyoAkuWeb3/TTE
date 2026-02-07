@@ -1,7 +1,6 @@
 import { test as baseTest } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Fix __dirname for ES modules if needed, or use process.cwd()
 // const __filename = fileURLToPath(import.meta.url);
@@ -13,7 +12,7 @@ export const test = baseTest.extend({
       await use(page);
     } finally {
       // Collect coverage from the window object
-      const coverage = await page.evaluate(() => (window as any).__coverage__).catch(() => null);
+      const coverage = await page.evaluate(() => (globalThis as any).__coverage__).catch(() => null);
 
       if (coverage) {
         const coverageDir = path.join(process.cwd(), '.nyc_output');

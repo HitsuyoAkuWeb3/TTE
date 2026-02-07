@@ -38,7 +38,7 @@ export const ToolLockPhase: React.FC<{
                 ${c.isSovereign ? 'border-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.2)]' : ''}
             `}
                     >
-                        <h3 className="text-xl font-display font-bold mb-2 break-words">{c.plainName}</h3>
+                        <h3 className="text-xl font-display font-bold mb-2 wrap-break-word">{c.plainName}</h3>
                         <div className="text-4xl font-mono mb-4">{getScore(c)} <span className="text-sm text-zinc-500">{v.label_pts}</span></div>
                         <p className="text-xs text-zinc-400 mb-6 flex-1">{c.functionStatement}</p>
                         
