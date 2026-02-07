@@ -273,15 +273,16 @@ export const pdfService = {
                 margin: { left: margin },
                 didParseCell: (data: any) => {
                     if (data.section === 'body' && data.column.index > 0) {
-                        const val = parseInt(data.cell.text[0]);
+                        const val = Number.parseInt(data.cell.text[0]);
                         if (data.column.index === 4) {
                             // Extraction risk: high = bad
                             if (val >= 4) data.cell.styles.textColor = [220, 38, 38];
                             else if (val <= 1) data.cell.styles.textColor = [34, 197, 94];
-                        } else {
+                        } else if (val >= 4) {
                             // Other scores: high = good
-                            if (val >= 4) data.cell.styles.textColor = [34, 197, 94];
-                            else if (val <= 1) data.cell.styles.textColor = [220, 38, 38];
+                            data.cell.styles.textColor = [34, 197, 94];
+                        } else if (val <= 1) {
+                            data.cell.styles.textColor = [220, 38, 38];
                         }
                     }
                 }
@@ -312,8 +313,8 @@ export const pdfService = {
                     ];
 
                     proofEntries.forEach(([label, value]) => {
-                        if (value && (value as string).length > 0) {
-                            addKeyValue(label as string, value as string);
+                        if (value && String(value).length > 0) {
+                            addKeyValue(String(label), String(value));
                         }
                     });
 
@@ -384,7 +385,7 @@ export const pdfService = {
 
         // ── SAVE ────────────────────────────────────────────
 
-        const name = state.profile?.name?.replace(/\s+/g, '_') || 'User';
+        const name = state.profile?.name?.replaceAll(/\s+/g, '_') || 'User';
         doc.save(`${L.filePrefix}_${name}_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 };

@@ -25,6 +25,31 @@ const HEAT_GLOW = [
     'shadow-[0_0_16px_rgba(220,38,38,0.5)]',
 ];
 
+const getScoreColor = (value: number, isRisk?: boolean): string => {
+    if (value === 0) return 'text-zinc-600';
+    if (isRisk) {
+        return value >= 3 ? 'text-red-500' : 'text-emerald-500';
+    }
+    if (value >= 4) return 'text-red-500';
+    if (value >= 3) return 'text-yellow-500';
+    return 'text-emerald-500';
+};
+
+const getButtonBackground = (i: number, value: number, isRisk?: boolean): string => {
+    if (i > value) return 'bg-zinc-900 border border-zinc-800';
+    if (isRisk) {
+        return i >= 3 ? 'bg-red-600' : 'bg-emerald-600';
+    }
+    return HEAT_COLORS[i];
+};
+
+const getTabClassName = (isActive: boolean, isSovereign?: boolean): string => {
+    const base = 'px-4 py-2 font-mono text-sm border-b-2 transition-colors whitespace-nowrap';
+    if (!isActive) return `${base} border-transparent text-zinc-500 hover:text-zinc-300`;
+    if (isSovereign) return `${base} border-yellow-500 text-yellow-500`;
+    return `${base} border-white text-bone`;
+};
+
 const TactileSlider: React.FC<{
     value: number;
     onChange: (val: number) => void;
@@ -35,28 +60,25 @@ const TactileSlider: React.FC<{
         <div className="space-y-3">
             <div className="flex justify-between items-center">
                 <span className="text-xs uppercase text-zinc-500 font-mono tracking-wider">{label}</span>
-                <span className={`text-2xl font-mono font-bold transition-colors duration-300 ${value === 0 ? 'text-zinc-600' :
-                    isRisk ? (value >= 3 ? 'text-red-500' : 'text-emerald-500') :
-                        (value >= 4 ? 'text-red-500' : value >= 3 ? 'text-yellow-500' : 'text-emerald-500')
-                    }`}>
+                <span className={`text-2xl font-mono font-bold transition-colors duration-300 ${getScoreColor(value, isRisk)}`}>
                     {value}<span className="text-xs text-zinc-600">/5</span>
                 </span>
             </div>
             <div className="flex gap-1.5">
                 {[0, 1, 2, 3, 4, 5].map(i => (
                     <button
-                        key={i}
+                        key={`score-${i}`}
                         onClick={() => onChange(i)}
                         className={`
               h-10 flex-1 rounded-sm transition-all duration-200
-              ${i <= value ? (isRisk ? (i >= 3 ? 'bg-red-600' : 'bg-emerald-600') : HEAT_COLORS[i]) : 'bg-zinc-900 border border-zinc-800'}
+              ${getButtonBackground(i, value, isRisk)}
               ${i === value ? HEAT_GLOW[i] : ''}
               hover:scale-105 active:scale-95
               ${i <= value ? 'border border-transparent' : ''}
             `}
                         aria-label={`Score ${i}`}
                     >
-                        <span className={`text-xs font-mono ${i <= value ? 'text-white' : 'text-zinc-700'}`}>{i}</span>
+                        <span className={`text-xs font-mono ${i <= value ? 'text-bone' : 'text-zinc-700'}`}>{i}</span>
                     </button>
                 ))}
             </div>
@@ -78,8 +100,8 @@ const ChallengerModal: React.FC<{
     onDismiss: () => void;
 }> = ({ result, onAcceptDowngrade, onProvideEvidence, onDismiss }) => {
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-zinc-950 border border-red-900/50 max-w-lg w-full p-8 space-y-6">
+        <div className="fixed inset-0 bg-void/80 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-void border border-red-900/50 max-w-lg w-full p-8 space-y-6">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-red-900/30 border border-red-700 flex items-center justify-center">
                         <span className="text-red-500 text-lg">⚠</span>
@@ -242,7 +264,7 @@ export const EvidenceScoringPhase: React.FC<{
     return (
         <div className="max-w-3xl mx-auto w-full animate-fade-in">
             <SectionHeader
-                title={mode === 'plain' ? `Step 3: ${v.phase_scoring}` : `Phase 3: ${v.phase_scoring}`}
+                title={`${v.phase_label} 3: ${v.phase_scoring}`}
                 subtitle={mode === 'plain' ? 'Rate how strong each skill really is. Be honest.' : 'Evidence Gates. High claims require high proof.'}
                 onBack={onBack}
             />
@@ -269,10 +291,7 @@ export const EvidenceScoringPhase: React.FC<{
                     <button
                         key={c.id}
                         onClick={() => setActiveIndex(i)}
-                        className={`px-4 py-2 font-mono text-sm border-b-2 transition-colors whitespace-nowrap ${i === activeIndex
-                            ? (c.isSovereign ? 'border-yellow-500 text-yellow-500' : 'border-white text-white')
-                            : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                            }`}
+                        className={getTabClassName(i === activeIndex, c.isSovereign)}
                     >
                         {c.plainName}
                     </button>
@@ -291,7 +310,7 @@ export const EvidenceScoringPhase: React.FC<{
             <div className="space-y-8">
                 {/* Dimension 1: Unbidden Requests */}
                 <div className="border border-zinc-800 p-6">
-                    <h3 className="text-lg font-bold mb-2 text-white">1. {v.score_unbidden}</h3>
+                    <h3 className="text-lg font-bold mb-2 text-bone">1. {v.score_unbidden}</h3>
                     <p className="text-zinc-400 mb-6 text-sm">{v.sublabel_unbidden}</p>
                     <TactileSlider
                         value={activeCandidate.scores.unbiddenRequests}
@@ -300,9 +319,10 @@ export const EvidenceScoringPhase: React.FC<{
                     />
                     {activeCandidate.scores.unbiddenRequests >= 3 && (
                         <div className="mt-4 animate-fade-in">
-                            <label className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste messages, emails, or requests' : 'Evidence Required — Paste DMs, Emails, or Requests'}</label>
+                            <label htmlFor="proof-unbidden" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste messages, emails, or requests' : 'Evidence Required — Paste DMs, Emails, or Requests'}</label>
                             <textarea
-                                className="w-full bg-zinc-900 border border-zinc-700 text-white p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
+                                id="proof-unbidden"
+                                className="w-full bg-zinc-900 border border-zinc-700 text-bone p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
                                 placeholder="Paste the DM content, email, or request here..."
                                 value={activeCandidate.proofs.unbidden || ''}
                                 onChange={(e) => updateProof('unbidden', e.target.value)}
@@ -313,7 +333,7 @@ export const EvidenceScoringPhase: React.FC<{
 
                 {/* Dimension 2: Frictionless Doing */}
                 <div className="border border-zinc-800 p-6">
-                    <h3 className="text-lg font-bold mb-2 text-white">2. {v.score_frictionless}</h3>
+                    <h3 className="text-lg font-bold mb-2 text-bone">2. {v.score_frictionless}</h3>
                     <p className="text-zinc-400 mb-6 text-sm">
                         Can you deliver <b className="text-zinc-200">{activeCandidate.promise}</b> in 30 mins with zero prep?
                     </p>
@@ -326,7 +346,7 @@ export const EvidenceScoringPhase: React.FC<{
 
                 {/* Dimension 3: Result Evidence */}
                 <div className="border border-zinc-800 p-6">
-                    <h3 className="text-lg font-bold mb-2 text-white">3. {v.score_evidence}</h3>
+                    <h3 className="text-lg font-bold mb-2 text-bone">3. {v.score_evidence}</h3>
                     <p className="text-zinc-400 mb-6 text-sm">{v.sublabel_evidence}</p>
                     <TactileSlider
                         value={activeCandidate.scores.resultEvidence}
@@ -335,9 +355,10 @@ export const EvidenceScoringPhase: React.FC<{
                     />
                     {activeCandidate.scores.resultEvidence >= 3 && (
                         <div className="mt-4 animate-fade-in">
-                            <label className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste a testimonial or result' : 'Evidence Required — Paste Testimonial or Metric'}</label>
+                            <label htmlFor="proof-result" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{mode === 'plain' ? 'Show proof — paste a testimonial or result' : 'Evidence Required — Paste Testimonial or Metric'}</label>
                             <textarea
-                                className="w-full bg-zinc-900 border border-zinc-700 text-white p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
+                                id="proof-result"
+                                className="w-full bg-zinc-900 border border-zinc-700 text-bone p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
                                 placeholder="Paste the testimonial, case study URL, or metric..."
                                 value={activeCandidate.proofs.result || ''}
                                 onChange={(e) => updateProof('result', e.target.value)}

@@ -118,7 +118,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             {/* Status Bar */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
-                    <div className="text-2xl font-black text-white">{streak}</div>
+                    <div className="text-2xl font-black text-bone">{streak}</div>
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Day Streak</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
@@ -126,11 +126,11 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Total Revenue</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
-                    <div className="text-2xl font-black text-white">{totalClients}</div>
+                    <div className="text-2xl font-black text-bone">{totalClients}</div>
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Clients Reached</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
-                    <div className="text-2xl font-black text-white">{totalOffers}</div>
+                    <div className="text-2xl font-black text-bone">{totalOffers}</div>
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Offers Sent</div>
                 </div>
             </div>
@@ -140,7 +140,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                 <div className="border border-[#00FF41]/20 bg-[#00FF41]/5 p-4 flex items-center justify-between">
                     <div>
                         <div className="text-[10px] text-zinc-500 uppercase">{v.ritual_active_weapon}</div>
-                        <div className="text-sm font-bold text-white">{tool.plainName}</div>
+                        <div className="text-sm font-bold text-bone">{tool.plainName}</div>
                     </div>
                     {theoryOfValue?.godfatherOffer && (
                         <div className="text-right">
@@ -191,40 +191,43 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
                     <div className="grid grid-cols-3 gap-4">
                         <div>
-                            <label className="text-[10px] text-zinc-500 uppercase block mb-1">Clients Reached</label>
+                            <label htmlFor="ritual-clients" className="text-[10px] text-zinc-500 uppercase block mb-1">Clients Reached</label>
                             <input
+                                id="ritual-clients"
                                 type="number"
                                 min="0"
                                 value={newEntry.clientReached}
-                                onChange={(e) => setNewEntry(p => ({ ...p, clientReached: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-zinc-900 border border-zinc-700 p-2 font-mono text-sm text-white focus:border-yellow-500 outline-none"
+                                onChange={(e) => setNewEntry(p => ({ ...p, clientReached: Number.parseInt(e.target.value) || 0 }))}
+                                className="w-full bg-zinc-900 border border-zinc-700 p-2 font-mono text-sm text-bone focus:border-yellow-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] text-zinc-500 uppercase block mb-1">Offers Sent</label>
+                            <label htmlFor="ritual-offers" className="text-[10px] text-zinc-500 uppercase block mb-1">Offers Sent</label>
                             <input
+                                id="ritual-offers"
                                 type="number"
                                 min="0"
                                 value={newEntry.offersSent}
-                                onChange={(e) => setNewEntry(p => ({ ...p, offersSent: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-zinc-900 border border-zinc-700 p-2 font-mono text-sm text-white focus:border-yellow-500 outline-none"
+                                onChange={(e) => setNewEntry(p => ({ ...p, offersSent: Number.parseInt(e.target.value) || 0 }))}
+                                className="w-full bg-zinc-900 border border-zinc-700 p-2 font-mono text-sm text-bone focus:border-yellow-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] text-zinc-500 uppercase block mb-1">Revenue ($)</label>
+                            <label htmlFor="ritual-revenue" className="text-[10px] text-zinc-500 uppercase block mb-1">Revenue ($)</label>
                             <input
+                                id="ritual-revenue"
                                 type="number"
                                 min="0"
                                 value={newEntry.revenue}
-                                onChange={(e) => setNewEntry(p => ({ ...p, revenue: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-zinc-900 border border-zinc-700 p-2 font-mono text-sm text-white focus:border-yellow-500 outline-none"
+                                onChange={(e) => setNewEntry(p => ({ ...p, revenue: Number.parseInt(e.target.value) || 0 }))}
+                                className="w-full bg-zinc-900 border border-zinc-700 p-2 font-mono text-sm text-bone focus:border-yellow-500 outline-none"
                             />
                         </div>
                     </div>
 
                     {/* Mood Selector */}
                     <div>
-                        <label className="text-[10px] text-zinc-500 uppercase block mb-2">{v.ritual_mood_label}</label>
+                        <span className="text-[10px] text-zinc-500 uppercase block mb-2">{v.ritual_mood_label}</span>
                         <div className="grid grid-cols-4 gap-2">
                             {(Object.keys(MOOD_CONFIG) as DailyEntry['mood'][]).map(mood => (
                                 <button
@@ -244,11 +247,12 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
                     {/* Note */}
                     <div>
-                        <label className="text-[10px] text-zinc-500 uppercase block mb-1">{v.ritual_notes_label}</label>
+                        <label htmlFor="ritual-notes" className="text-[10px] text-zinc-500 uppercase block mb-1">{v.ritual_notes_label}</label>
                         <textarea
+                            id="ritual-notes"
                             value={newEntry.note}
                             onChange={(e) => setNewEntry(p => ({ ...p, note: e.target.value }))}
-                            className="w-full bg-zinc-900 border border-zinc-700 p-3 font-mono text-sm text-white focus:border-yellow-500 outline-none h-20 resize-none"
+                            className="w-full bg-zinc-900 border border-zinc-700 p-3 font-mono text-sm text-bone focus:border-yellow-500 outline-none h-20 resize-none"
                             placeholder="What happened today? What did you learn?"
                         />
                     </div>

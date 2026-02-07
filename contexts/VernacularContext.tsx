@@ -195,9 +195,13 @@ interface VernacularDictionary {
     intro_button: string;
     intro_mode_label: string;
 
-    // ── Tool Lock Phase ──────────────────────────────
     lock_phase_prefix: string;
     lock_confirm: string;
+
+    // ── Global Labels ────────────────────────────────
+    unknown_subject: string;
+    label_pts: string;
+    phase_label: string; // 'Phase' or 'Step'
 }
 
 const MYTHIC: VernacularDictionary = {
@@ -378,6 +382,11 @@ const MYTHIC: VernacularDictionary = {
     // Tool Lock
     lock_phase_prefix: 'Phase 4:',
     lock_confirm: 'Confirm',
+
+    // Global
+    unknown_subject: 'Unknown Subject',
+    label_pts: 'PTS',
+    phase_label: 'Phase',
 };
 
 const INDUSTRIAL: VernacularDictionary = {
@@ -558,6 +567,11 @@ const INDUSTRIAL: VernacularDictionary = {
     // Tool Lock
     lock_phase_prefix: 'Phase 4:',
     lock_confirm: 'Select',
+
+    // Global
+    unknown_subject: 'Unknown Organization',
+    label_pts: 'PTS',
+    phase_label: 'Phase',
 };
 
 const PLAIN: VernacularDictionary = {
@@ -738,6 +752,11 @@ const PLAIN: VernacularDictionary = {
     // Tool Lock
     lock_phase_prefix: 'Step 4:',
     lock_confirm: 'Pick This',
+
+    // Global
+    unknown_subject: 'Unknown Person',
+    label_pts: 'POINTS',
+    phase_label: 'Step',
 };
 
 const DICTIONARIES: Record<VernacularMode, VernacularDictionary> = {
@@ -801,7 +820,7 @@ export const VernacularToggle: React.FC = () => {
                     key={m.key}
                     onClick={() => setMode(m.key)}
                     className={`px-3 py-1.5 border transition-all ${mode === m.key
-                        ? 'border-white text-white bg-white/10'
+                        ? 'border-white text-bone bg-white/10'
                         : 'border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
                         }`}
                 >

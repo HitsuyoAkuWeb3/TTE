@@ -31,13 +31,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
         }
 
+        // Helper to safely strip script/style blocks without ReDoS regex
+        const stripBlock = (str: string, tag: string) => {
+            let result = str;
+            const openTag = `<${tag}`;
+            const closeTag = `</${tag}>`;
+            
+            while (true) {
+                const lower = result.toLowerCase();
+                const start = lower.indexOf(openTag);
+                if (start === -1) break;
+                
+                const end = lower.indexOf(closeTag, start);
+                if (end === -1) {
+                    // No closing tag found, stop processing to stay safe
+                    break;
+                }
+                
+                // Remove the block
+                result = result.substring(0, start) + " " + result.substring(end + closeTag.length);
+            }
+            return result;
+        };
+
         const html = await pageResponse.text();
+        let cleanHtml = stripBlock(html, 'script');
+        cleanHtml = stripBlock(cleanHtml, 'style');
+
         // Extract meaningful text (strip HTML tags)
-        const textContent = html
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\s+/g, ' ')
+        const textContent = cleanHtml
+            .replaceAll(/<[^>]+>/g, ' ')
+            .replaceAll(/\s+/g, ' ')
             .trim()
             .slice(0, 5000); // Cap at 5000 chars for LLM
 

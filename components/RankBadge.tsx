@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getRank, getRankProgress, MythicRank } from '../services/gamification';
+import { getRank, getRankProgress } from '../services/gamification';
 
 // ============================================================
 // RANK BADGE — Displays current Mythic Rank with XP progress
@@ -14,6 +14,19 @@ export const RankBadge: React.FC<RankBadgeProps> = ({ xp, compact = false }) => 
     const rank = getRank(xp);
     const progress = getRankProgress(xp);
     const [showTooltip, setShowTooltip] = useState(false);
+    
+    // Shockwave animation logic
+    const [prevLevel, setPrevLevel] = useState(rank.level);
+    const [isLevelingUp, setIsLevelingUp] = useState(false);
+
+    useEffect(() => {
+        if (rank.level > prevLevel) {
+            setIsLevelingUp(true);
+            const timer = setTimeout(() => setIsLevelingUp(false), 600); // 600ms match animation duration
+            return () => clearTimeout(timer);
+        }
+        setPrevLevel(rank.level);
+    }, [rank.level, prevLevel]);
 
     if (compact) {
         return (
@@ -30,12 +43,15 @@ export const RankBadge: React.FC<RankBadgeProps> = ({ xp, compact = false }) => 
     return (
         <div
             className="relative"
+            tabIndex={0}
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
+            onFocus={() => setShowTooltip(true)}
+            onBlur={() => setShowTooltip(false)}
         >
             <div
-                className="flex items-center gap-2 px-3 py-1.5 border bg-black/80 cursor-default transition-colors"
-                style={{ borderColor: `${rank.color}33` }}
+                className={`flex items-center gap-2 px-3 py-1.5 border bg-void/80 cursor-default transition-colors ${isLevelingUp ? 'animate-shockwave' : ''}`}
+                style={{ borderColor: `${rank.color}33`, boxShadow: isLevelingUp ? `0 0 20px ${rank.color}66` : 'none' }}
             >
                 <span className="text-sm" style={{ color: rank.color }}>{rank.glyph}</span>
                 <div className="flex flex-col">
@@ -57,9 +73,9 @@ export const RankBadge: React.FC<RankBadgeProps> = ({ xp, compact = false }) => 
 
             {/* Tooltip */}
             {showTooltip && (
-                <div className="absolute top-full right-0 mt-1 bg-black border border-zinc-800 shadow-lg p-3 z-50 w-44 animate-fade-in">
+                <div className="absolute top-full right-0 mt-1 bg-void border border-zinc-800 shadow-hard p-3 z-50 w-44 animate-fade-in">
                     <div className="text-[9px] text-zinc-500 uppercase font-mono mb-1">Experience</div>
-                    <div className="text-sm font-bold font-mono text-white">{xp.toLocaleString()} XP</div>
+                    <div className="text-sm font-bold font-mono text-bone">{xp.toLocaleString()} XP</div>
                     <div className="text-[9px] text-zinc-500 font-mono mt-1">{progress}% to next rank</div>
                 </div>
             )}
@@ -84,8 +100,8 @@ export const XpToast: React.FC<XpToastProps> = ({ amount, reason, onDone }) => {
     }, [onDone]);
 
     return (
-        <div className="fixed bottom-6 right-6 z-[100] animate-slide-up">
-            <div className="bg-black border border-[#00FF41]/30 px-4 py-3 shadow-[0_0_20px_rgba(0,255,65,0.15)] flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-100 animate-slide-up">
+            <div className="bg-void border border-[#00FF41]/30 px-4 py-3 shadow-[0_0_20px_rgba(0,255,65,0.15)] flex items-center gap-3">
                 <span className="text-[#00FF41] font-mono font-black text-sm">+{amount} XP</span>
                 <span className="text-zinc-400 font-mono text-[10px] uppercase">{reason}</span>
             </div>

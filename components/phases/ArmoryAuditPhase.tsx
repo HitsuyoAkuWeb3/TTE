@@ -75,9 +75,8 @@ const PrimitiveGroup: React.FC<{
     group: typeof PRIMITIVES[0],
     isClassifying: boolean,
     items: ArmoryItem[],
-    onProcess: (name: string, desc: string) => void,
-    setHoveredPrim: (desc: string | null) => void
-}> = ({ group, isClassifying, items, onProcess, setHoveredPrim }) => {
+    onProcess: (name: string, desc: string) => void
+}> = ({ group, isClassifying, items, onProcess }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -85,11 +84,11 @@ const PrimitiveGroup: React.FC<{
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full text-left bg-zinc-950/95 backdrop-blur-sm px-4 py-3 hover:bg-zinc-900 transition-colors flex items-center justify-between group-hover/cat:text-white"
+                className="w-full text-left bg-void px-4 py-3 hover:bg-zinc-900 transition-colors flex items-center justify-between group-hover/cat:text-bone"
             >
                 <div className="flex flex-col gap-1 pr-4">
                     <div className="flex items-center gap-2">
-                        <h4 className="text-[10px] uppercase text-zinc-400 font-bold tracking-widest group-hover/cat:text-white transition-colors">
+                        <h4 className="text-[10px] uppercase text-zinc-400 font-bold tracking-widest group-hover/cat:text-bone transition-colors">
                             {group.cat}
                         </h4>
                     </div>
@@ -97,7 +96,7 @@ const PrimitiveGroup: React.FC<{
                         {group.desc}
                     </p>
                 </div>
-                <div className={`transform transition-transform duration-200 text-zinc-500 ${isOpen ? 'rotate-180 text-white' : ''}`}>
+                <div className={`transform transition-transform duration-200 text-zinc-500 ${isOpen ? 'rotate-180 text-bone' : ''}`}>
                     <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -112,11 +111,9 @@ const PrimitiveGroup: React.FC<{
                             type="button"
                             disabled={isClassifying || items.some(i => i.verb === p.name)}
                             onClick={() => onProcess(p.name, p.desc)}
-                            onMouseEnter={() => setHoveredPrim(p.desc)}
-                            onMouseLeave={() => setHoveredPrim(null)}
-                            className="group/item flex flex-col items-start text-left px-3 py-3 border border-zinc-800 bg-zinc-950/50 hover:border-zinc-500 hover:bg-zinc-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
+                            className="group/item flex flex-col items-start text-left px-3 py-3 border border-zinc-800 bg-void/50 hover:border-zinc-500 hover:bg-zinc-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                         >
-                            <span className="text-xs font-mono text-zinc-300 group-hover/item:text-white uppercase">{p.name}</span>
+                            <span className="text-xs font-mono text-zinc-300 group-hover/item:text-bone uppercase">{p.name}</span>
                             <span className="text-[10px] text-zinc-500 group-hover/item:text-zinc-300 leading-tight mt-1.5 block">
                                 {p.desc}
                             </span>
@@ -139,20 +136,31 @@ export const ArmoryAuditPhase: React.FC<{
     const { mode, v } = useVernacular();
     const [verb, setVerb] = useState('');
     const [isClassifying, setIsClassifying] = useState(false);
-    const [hoveredPrim, setHoveredPrim] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'spatial' | 'terminal'>('spatial');
 
     // Deck of Sparks state
     const [starterDeck, setStarterDeck] = useState<StarterCard[]>([]);
     const [isDeckLoading, setIsDeckLoading] = useState(false);
     const [isDeckDismissed, setIsDeckDismissed] = useState(false);
+    const generationRef = React.useRef(false);
 
     // Generate starter deck on mount if armory is empty and profile exists
     useEffect(() => {
+        // Prevent double-firing or regeneration if already attempted
+        if (generationRef.current) return;
+
         if (profile && items.length === 0 && !isDeckDismissed && starterDeck.length === 0) {
+            generationRef.current = true;
             setIsDeckLoading(true);
             generateStarterDeck(profile.industry, profile.preferredTone)
                 .then(cards => setStarterDeck(cards))
+                .catch(err => {
+                    console.error("Failed to generate deck:", err);
+                    generationRef.current = false; // Allow retry on error? Or keep blocked? 
+                    // Keeping blocked to prevent loops is safer for "flashing" issues.
+                    // But if it fails, user gets nothing. 
+                    // optimizing for stability first.
+                })
                 .finally(() => setIsDeckLoading(false));
         }
     }, [profile]);
@@ -185,7 +193,7 @@ export const ArmoryAuditPhase: React.FC<{
     return (
         <div className="max-w-6xl mx-auto w-full animate-fade-in">
             <SectionHeader
-                title={mode === 'plain' ? `Step 1: ${v.phase_armory}` : `Phase 1: ${v.phase_armory}`}
+                title={`${v.phase_label} 1: ${v.phase_armory}`}
                 subtitle={mode === 'plain' ? 'List everything you do regularly. Use action words.' : 'List every recurring activity. Verbs only. No metaphors.'}
                 onBack={onBack}
             />
@@ -239,7 +247,7 @@ export const ArmoryAuditPhase: React.FC<{
                     )}
 
                     {starterDeck.length > 0 && !isDeckDismissed && (
-                        <div className="border border-zinc-700 bg-black p-4 space-y-3">
+                        <div className="border border-zinc-700 bg-void p-4 space-y-3">
                             <div className="flex justify-between items-center">
                                 <h3 className="text-xs uppercase text-zinc-400 font-mono tracking-wider">
                                     DECK OF SPARKS — KEEP OR DISCARD
@@ -255,24 +263,24 @@ export const ArmoryAuditPhase: React.FC<{
                                 {starterDeck.map((card, i) => (
                                     <div
                                         key={card.name}
-                                        className={`border bg-zinc-950 p-3 flex flex-col gap-2 animate-fade-in ${getCategoryStyle(card.category)}`}
+                                        className={`border bg-void p-3 flex flex-col gap-2 animate-fade-in ${getCategoryStyle(card.category)}`}
                                         style={{ animationDelay: `${i * 50}ms` }}
                                     >
                                         <div className="flex justify-between items-start">
-                                            <span className="text-xs font-mono text-white">{card.name}</span>
+                                            <span className="text-xs font-mono text-bone">{card.name}</span>
                                             <span className="text-[8px] font-mono uppercase text-zinc-600">{card.category}</span>
                                         </div>
                                         <div className="flex gap-1">
                                             <button
                                                 onClick={() => handleKeepCard(card)}
                                                 disabled={isClassifying}
-                                                className="flex-1 text-[10px] font-mono py-1 bg-black border border-[#00FF41]/40 text-[#00FF41] hover:border-[#00FF41] hover:bg-[#00FF41]/10 transition-all disabled:opacity-50"
+                                                className="flex-1 text-[10px] font-mono py-1 bg-void border border-[#00FF41]/40 text-[#00FF41] hover:border-[#00FF41] hover:bg-[#00FF41]/10 transition-all disabled:opacity-50"
                                             >
                                                 KEEP
                                             </button>
                                             <button
                                                 onClick={() => handleDiscardCard(card)}
-                                                className="flex-1 text-[10px] font-mono py-1 bg-black border border-zinc-800 text-zinc-500 hover:text-[#FF0000] hover:border-[#FF0000]/60 transition-all"
+                                                className="flex-1 text-[10px] font-mono py-1 bg-void border border-zinc-800 text-zinc-500 hover:text-[#FF0000] hover:border-[#FF0000]/60 transition-all"
                                             >
                                                 BURN
                                             </button>
@@ -284,8 +292,8 @@ export const ArmoryAuditPhase: React.FC<{
                     )}
 
                     {/* Sovereign Primitives Menu */}
-                    <div className="bg-zinc-900/30 border border-zinc-800 h-[850px] overflow-y-auto relative flex flex-col">
-                        <div className="p-4 border-b border-zinc-800 bg-zinc-950 sticky top-0 z-20">
+                    <div className="bg-[#121212] border-2 border-zinc-700 h-[850px] overflow-y-auto relative flex flex-col">
+                        <div className="p-4 border-b border-zinc-800 bg-void sticky top-0 z-20">
                             <h3 className="text-xs uppercase text-zinc-500 font-mono">
                                 Sovereign Primitives (Quick Add)
                             </h3>
@@ -301,7 +309,6 @@ export const ArmoryAuditPhase: React.FC<{
                                     isClassifying={isClassifying}
                                     items={items}
                                     onProcess={processItem}
-                                    setHoveredPrim={setHoveredPrim}
                                 />
                             ))}
                         </div>
@@ -323,7 +330,7 @@ export const ArmoryAuditPhase: React.FC<{
                             {items.map(item => (
                                 <div key={item.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-sm">
                                     <div className="flex justify-between items-center mb-2">
-                                        <span className="font-bold text-white uppercase">{item.verb}</span>
+                                        <span className="font-bold text-bone uppercase">{item.verb}</span>
                                         <span className="text-xs font-mono text-zinc-500 uppercase">{item.quadrant}</span>
                                     </div>
                                     <div className="space-y-6 pt-2">
@@ -337,10 +344,10 @@ export const ArmoryAuditPhase: React.FC<{
                                                 type="range" min="-10" max="10" step="1"
                                                 value={item.x}
                                                 onChange={(e) => {
-                                                    const newX = parseInt(e.target.value);
+                                                    const newX = Number.parseInt(e.target.value);
                                                     onUpdateItem(item.id, newX, item.y);
                                                 }}
-                                                className="w-full accent-white h-1 bg-gradient-to-r from-zinc-800 via-zinc-600 to-zinc-800 rounded-lg appearance-none cursor-pointer"
+                                                className="w-full accent-white h-1 bg-zinc-800 appearance-none cursor-pointer"
                                             />
                                         </div>
 
@@ -354,10 +361,10 @@ export const ArmoryAuditPhase: React.FC<{
                                                 type="range" min="-10" max="10" step="1"
                                                 value={item.y}
                                                 onChange={(e) => {
-                                                    const newY = parseInt(e.target.value);
+                                                    const newY = Number.parseInt(e.target.value);
                                                     onUpdateItem(item.id, item.x, newY);
                                                 }}
-                                                className="w-full accent-white h-1 bg-gradient-to-r from-zinc-800 via-zinc-600 to-zinc-800 rounded-lg appearance-none cursor-pointer"
+                                                className="w-full accent-white h-1 bg-zinc-800 appearance-none cursor-pointer"
                                             />
                                         </div>
                                     </div>
@@ -369,7 +376,7 @@ export const ArmoryAuditPhase: React.FC<{
                         </div>
 
                         {/* Pinned Proceed Button */}
-                        <div className="flex-none pt-4 bg-zinc-950 border-t border-zinc-800 mt-auto sticky bottom-0">
+                        <div className="flex-none pt-4 bg-void border-t border-zinc-800 mt-auto sticky bottom-0">
                             <Button onClick={onNext} disabled={items.length < 3} className="w-full">
                                 Proceed to Compression &rarr;
                             </Button>
@@ -378,7 +385,7 @@ export const ArmoryAuditPhase: React.FC<{
                 ) : (
                     /* TERMINAL AUDIT MODE — High-density data grid */
                     <div className="h-[850px] flex flex-col">
-                        <div className="flex-1 overflow-y-auto border border-zinc-800 bg-black">
+                        <div className="flex-1 overflow-y-auto border border-zinc-800 bg-void">
                             <table className="w-full font-mono text-xs">
                                 <thead className="bg-zinc-900 sticky top-0 z-10">
                                     <tr className="border-b border-zinc-700">
@@ -394,21 +401,21 @@ export const ArmoryAuditPhase: React.FC<{
                                     {items.map((item, i) => (
                                         <tr key={item.id} className="border-b border-zinc-900 hover:bg-zinc-900/50 transition-colors">
                                             <td className="p-3 text-zinc-600">{i + 1}</td>
-                                            <td className="p-3 text-white font-bold uppercase">{item.verb}</td>
+                                            <td className="p-3 text-bone font-bold uppercase">{item.verb}</td>
                                             <td className="p-3 text-center">
                                                 <input
                                                     type="number" min="-10" max="10"
                                                     value={item.x}
-                                                    onChange={(e) => onUpdateItem(item.id, parseInt(e.target.value) || 0, item.y)}
-                                                    className="w-12 bg-zinc-900 border border-zinc-700 text-center text-white p-1 font-mono text-xs focus:border-white outline-none"
+                                                    onChange={(e) => onUpdateItem(item.id, Number.parseInt(e.target.value) || 0, item.y)}
+                                                    className="w-12 bg-zinc-900 border border-zinc-700 text-center text-bone p-1 font-mono text-xs focus:border-white outline-none"
                                                 />
                                             </td>
                                             <td className="p-3 text-center">
                                                 <input
                                                     type="number" min="-10" max="10"
                                                     value={item.y}
-                                                    onChange={(e) => onUpdateItem(item.id, item.x, parseInt(e.target.value) || 0)}
-                                                    className="w-12 bg-zinc-900 border border-zinc-700 text-center text-white p-1 font-mono text-xs focus:border-white outline-none"
+                                                    onChange={(e) => onUpdateItem(item.id, item.x, Number.parseInt(e.target.value) || 0)}
+                                                    className="w-12 bg-zinc-900 border border-zinc-700 text-center text-bone p-1 font-mono text-xs focus:border-white outline-none"
                                                 />
                                             </td>
                                             <td className="p-3">

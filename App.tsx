@@ -6,10 +6,12 @@ import {
   INITIAL_STATE,
   ArmoryItem,
   Quadrant,
-  DossierSnapshot
+  DossierSnapshot,
+  ToolCandidate
 } from './types';
 import { generatePilotProtocol, updateCortex } from './services/geminiService';
-import { ProgressBar } from './components/Visuals';
+import { apiFetch } from './services/apiClient';
+import { LoadingRitual, ProgressBar } from './components/Visuals';
 import { RankBadge, XpToast } from './components/RankBadge';
 import { XP_AWARDS } from './services/gamification';
 import { useVernacular } from './contexts/VernacularContext';
@@ -27,20 +29,30 @@ import { ArchivePhase } from './components/phases/ArchivePhase';
 import { CalibrationPhase } from './components/phases/CalibrationPhase';
 import { RitualDashboard } from './components/phases/RitualDashboard';
 import { Pyre } from './components/phases/Pyre';
-import { ToolCandidate } from './types';
+
 
 export default function App() {
   const { isLoaded: clerkLoaded, user: clerkUser } = useUser();
   const { signOut } = useAuth();
-  const isLoading = !clerkLoaded;
-  const user = clerkUser ? { id: clerkUser.id, email: clerkUser.primaryEmailAddress?.emailAddress } : null;
+  
+  // DEV BYPASS: Allow E2E tests to simulate a logged-in user without Clerk keys
+  const isBypass = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('test_user') === 'true';
+
+  const user = React.useMemo(() => {
+    if (isBypass) return { id: 'test_user', email: 'test@sovereign.local' };
+    if (clerkUser) return { id: clerkUser.id, email: clerkUser.primaryEmailAddress?.emailAddress };
+    return null;
+  }, [isBypass, clerkUser]);
+
+  const isLoading = !clerkLoaded && !isBypass;
+
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [xpToast, setXpToast] = useState<{ amount: number; reason: string } | null>(null);
   const [pyreTarget, setPyreTarget] = useState<ToolCandidate | null>(null);
-  const { mode, v } = useVernacular();
+  const { v } = useVernacular();
 
   // XP award helper — updates state + shows toast
   const awardXp = useCallback((amount: number, reason: string) => {
@@ -67,7 +79,7 @@ export default function App() {
     if (!user) return;
     (async () => {
       try {
-        const res = await fetch('/api/db/profile', { headers: { 'x-clerk-user-id': user.id } });
+        const res = await apiFetch('/api/db/profile', { headers: { 'x-clerk-user-id': user.id } });
         if (res.ok) {
           const profile = await res.json();
           setState(s => ({ ...s, profile: profile.data || profile }));
@@ -96,7 +108,7 @@ export default function App() {
     const fullProfile = { ...profile, id: profileId, userId: user.id };
     // Save to Postgres API + localStorage fallback
     try {
-      await fetch('/api/db/profile', {
+      await apiFetch('/api/db/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-clerk-user-id': user.id },
         body: JSON.stringify({ data: fullProfile }),
@@ -127,7 +139,7 @@ export default function App() {
       };
       // Save to Postgres API
       try {
-        await fetch('/api/db/sessions', {
+        await apiFetch('/api/db/sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-clerk-user-id': user.id },
           body: JSON.stringify({
@@ -154,16 +166,16 @@ export default function App() {
     setIsSaving(false);
   };
 
-  if (isLoading) {
+  if ((!clerkLoaded && !isBypass)) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.4em] text-zinc-400 animate-pulse">
-        Establishing Link...
+      <div className="min-h-screen bg-void flex items-center justify-center">
+        <LoadingRitual />
       </div>
     );
   }
 
   if (!user) {
-    return <div className="min-h-screen bg-zinc-950 text-white"><AuthTerminal /></div>;
+    return <div className="min-h-screen bg-void text-bone"><AuthTerminal /></div>;
   }
 
   const getProgress = () => {
@@ -197,26 +209,26 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white selection:bg-white selection:text-black">
+    <div className="min-h-screen bg-void text-bone selection:bg-white selection:text-black">
       <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-[9px] font-mono text-zinc-400 border border-zinc-800 px-3 py-1.5 bg-black/80 hover:bg-zinc-900 transition-colors flex items-center gap-2 uppercase tracking-wider"
+            className="text-[9px] font-mono text-zinc-400 border border-zinc-800 px-3 py-1.5 bg-void/80 hover:bg-zinc-900 transition-colors flex items-center gap-2 uppercase tracking-wider"
           >
             NODE: {user.email}
             <span className={`transform transition-transform text-[8px] ${isMenuOpen ? 'rotate-180' : ''}`}>▼</span>
           </button>
 
           {isMenuOpen && (
-            <div className="absolute top-full left-0 mt-1 w-56 bg-black border border-zinc-800 shadow-[0_4px_20px_rgba(0,0,0,0.8)] backdrop-blur-md flex flex-col animate-fade-in z-50">
+            <div className="absolute top-full left-0 mt-1 w-56 bg-void border border-zinc-800 shadow-[0_4px_20px_rgba(0,0,0,0.8)] flex flex-col animate-fade-in z-50">
               {user && state.currentPhase !== Phase.ARCHIVE && (
                 <button
                   onClick={() => {
                     setState(s => ({ ...s, currentPhase: Phase.ARCHIVE }));
                     setIsMenuOpen(false);
                   }}
-                  className="text-left px-4 py-3 text-[10px] font-mono text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
+                  className="text-left px-4 py-3 text-[10px] font-mono text-zinc-300 hover:text-bone hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
                 >
                   {v.menu_archive}
                 </button>
@@ -228,7 +240,7 @@ export default function App() {
                     setState(s => ({ ...s, currentPhase: Phase.CALIBRATION }));
                     setIsMenuOpen(false);
                   }}
-                  className="text-left px-4 py-3 text-[10px] font-mono text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
+                  className="text-left px-4 py-3 text-[10px] font-mono text-zinc-300 hover:text-bone hover:bg-zinc-900 transition-colors border-b border-zinc-900 uppercase tracking-widest"
                 >
                   {v.menu_calibrate}
                 </button>
@@ -321,6 +333,7 @@ export default function App() {
           <ToolLockPhase
             candidates={state.candidates}
             onLock={(id) => setState(s => ({ ...s, selectedToolId: id, currentPhase: Phase.VALUE_SYNTHESIS }))}
+            onBurn={(id) => setState(s => ({ ...s, candidates: s.candidates.filter(c => c.id !== id) }))}
             onBack={() => setState(s => ({ ...s, currentPhase: Phase.EVIDENCE_SCORING }))}
           />
         )}
@@ -416,7 +429,7 @@ export default function App() {
         <footer className="fixed bottom-8 left-0 w-full flex justify-center z-40 pointer-events-none">
           <button
             onClick={() => setState(s => ({ ...s, currentPhase: Phase.ARCHIVE }))}
-            className="text-[10px] font-mono text-[#00FF41] hover:bg-[#00FF41] hover:text-black transition-all uppercase tracking-[0.2em] bg-black/80 backdrop-blur-sm px-6 py-3 border border-[#00FF41]/30 hover:border-[#00FF41] rounded-sm pointer-events-auto shadow-[0_0_20px_rgba(0,255,65,0.1)]"
+            className="text-[10px] font-mono text-[#00FF41] hover:bg-[#00FF41] hover:text-black transition-all uppercase tracking-[0.2em] bg-void px-6 py-3 border border-[#00FF41]/30 hover:border-[#00FF41] rounded-sm pointer-events-auto shadow-[0_0_20px_rgba(0,255,65,0.1)]"
           >
             {v.footer_archive_link}
           </button>

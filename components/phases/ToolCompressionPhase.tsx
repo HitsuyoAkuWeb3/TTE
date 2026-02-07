@@ -6,6 +6,112 @@ import { useVernacular } from '../../contexts/VernacularContext';
 
 const ARMORY_HARD_CAP = 15;
 
+// ── HELPERS ─────────────────────────────────────────────
+const getCandidateBadge = (isSovereign: boolean | undefined, isPlain: boolean, idx: number): string => {
+    if (isSovereign) return isPlain ? 'YOUR TOP SKILL' : 'SOVEREIGN AUTHORITY';
+    return `Candidate 0${idx + 1}`;
+};
+
+const getSovereignButtonText = (synthesizing: boolean, isPlain: boolean): string => {
+    if (synthesizing) return isPlain ? 'Combining...' : 'Synthesizing Authority...';
+    return isPlain ? 'Combine Into One Top Skill' : 'Refine into One Sovereign Authority';
+};
+
+const getCompressButtonText = (analyzing: boolean, isPlain: boolean): React.ReactNode => {
+    if (analyzing) {
+        return (
+            <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <span>Synthesizing Market Function...</span>
+            </span>
+        );
+    }
+    return isPlain ? 'Analyze My Top Skills' : 'Compress into Market Function';
+};
+
+// ── CANDIDATE RESULTS VIEW ──────────────────────────────
+const CandidateResultsView: React.FC<{
+    candidates: ToolCandidate[];
+    mode: string;
+    v: Record<string, string>;
+    synthesizingSovereign: boolean;
+    onSovereign: () => void;
+    onNext: () => void;
+    onBack: () => void;
+}> = ({ candidates, mode, v, synthesizingSovereign, onSovereign, onNext, onBack }) => {
+    const isPlain = mode === 'plain';
+    const isSovereign = candidates.length === 1 && candidates[0].isSovereign;
+
+    const subtitle = isPlain
+        ? 'We turned your skills into roles you can sell.'
+        : 'The Engine has compressed your skills into commercially viable functions.';
+
+    const titleSuffix = isPlain ? `Your ${v.tool_plural}` : 'Market Synthesis';
+
+    return (
+        <div className="max-w-5xl mx-auto w-full animate-fade-in">
+            <SectionHeader
+                title={`${v.phase_label} 2: ${titleSuffix}`}
+                subtitle={subtitle}
+                onBack={onBack}
+            />
+            <div className={`grid grid-cols-1 ${isSovereign ? 'md:grid-cols-1 max-w-2xl mx-auto' : 'md:grid-cols-3'} gap-6`}>
+                {candidates.map((c, idx) => (
+                    <div
+                        key={c.id}
+                        className={`border bg-zinc-900/50 flex flex-col h-full relative group transition-all duration-500
+                            ${c.isSovereign ? 'border-[#00FF41]/50 shadow-[0_0_30px_rgba(0,255,65,0.1)]' : 'border-zinc-700'}
+                        `}
+                    >
+                        <div className={`absolute top-0 right-0 p-2 text-black text-[10px] font-bold uppercase
+                            ${c.isSovereign ? 'bg-[#00FF41]' : 'bg-white'}
+                        `}>
+                            {getCandidateBadge(c.isSovereign, isPlain, idx)}
+                        </div>
+                        <div className="p-6 grow">
+                            <div className="text-zinc-500 font-mono text-xs mb-2 uppercase">{c.originalVerb}</div>
+                            <h3 className="text-2xl font-display font-black mb-4 text-bone uppercase wrap-break-word">{c.plainName}</h3>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Function</span>
+                                    <p className="text-sm font-mono text-zinc-300">{c.functionStatement}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">The Promise</span>
+                                    <p className="text-sm font-mono text-zinc-300">{c.promise}</p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] text-red-500/70 uppercase font-bold block mb-1">Anti-Pitch</span>
+                                    <p className="text-sm font-mono text-zinc-400 italic">"{c.antiPitch}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-12 flex justify-between items-center border-t border-zinc-800 pt-6">
+                {isSovereign ? (
+                    <div className="flex-1" />
+                ) : (
+                    <Button
+                        variant="gold"
+                        onClick={onSovereign}
+                        disabled={synthesizingSovereign}
+                        className="flex-1 mr-4"
+                    >
+                        {getSovereignButtonText(synthesizingSovereign, isPlain)}
+                    </Button>
+                )}
+
+                <Button onClick={onNext}>{isPlain ? 'Next Step →' : 'Proceed to Evidence →'}</Button>
+            </div>
+        </div>
+    );
+};
+
+// ── MAIN COMPONENT ──────────────────────────────────────
 export const ToolCompressionPhase: React.FC<{
     armory: ArmoryItem[],
     onSelectCandidates: (candidates: ToolCandidate[]) => void,
@@ -25,14 +131,13 @@ export const ToolCompressionPhase: React.FC<{
     const [isCompressing, setIsCompressing] = useState(false);
 
     const isOverCap = armory.length > ARMORY_HARD_CAP;
+    const isPlain = mode === 'plain';
 
     const toggleSelection = (id: string) => {
         if (selections.includes(id)) {
             setSelections(s => s.filter(x => x !== id));
-        } else {
-            if (selections.length < 3) {
-                setSelections(s => [...s, id]);
-            }
+        } else if (selections.length < 3) {
+            setSelections(s => [...s, id]);
         }
     };
 
@@ -99,75 +204,44 @@ export const ToolCompressionPhase: React.FC<{
     };
 
     if (candidates.length > 0) {
-        const isSovereign = candidates.length === 1 && candidates[0].isSovereign;
-
         return (
-            <div className="max-w-5xl mx-auto w-full animate-fade-in">
-                <SectionHeader
-                    title={mode === 'plain' ? `Step 2: Your ${v.tool_plural}` : 'Phase 2: Market Synthesis'}
-                    subtitle={mode === 'plain' ? 'We turned your skills into roles you can sell.' : 'The Engine has compressed your skills into commercially viable functions.'}
-                    onBack={onBack}
-                />
-                <div className={`grid grid-cols-1 ${isSovereign ? 'md:grid-cols-1 max-w-2xl mx-auto' : 'md:grid-cols-3'} gap-6`}>
-                    {candidates.map((c, idx) => (
-                        <div
-                            key={c.id}
-                            className={`border bg-zinc-900/50 flex flex-col h-full relative group transition-all duration-500
-                ${c.isSovereign ? 'border-[#00FF41]/50 shadow-[0_0_30px_rgba(0,255,65,0.1)]' : 'border-zinc-700'}
-              `}
-                        >
-                            <div className={`absolute top-0 right-0 p-2 text-black text-[10px] font-bold uppercase
-                  ${c.isSovereign ? 'bg-[#00FF41]' : 'bg-white'}
-              `}>
-                                {c.isSovereign ? (mode === 'plain' ? 'YOUR TOP SKILL' : 'SOVEREIGN AUTHORITY') : `Candidate 0${idx + 1}`}
-                            </div>
-                            <div className="p-6 flex-grow">
-                                <div className="text-zinc-500 font-mono text-xs mb-2 uppercase">{c.originalVerb}</div>
-                                <h3 className="text-2xl font-black mb-4 text-white uppercase break-words">{c.plainName}</h3>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Function</label>
-                                        <p className="text-sm font-mono text-zinc-300">{c.functionStatement}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">The Promise</label>
-                                        <p className="text-sm font-mono text-zinc-300">{c.promise}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] text-red-500/70 uppercase font-bold block mb-1">Anti-Pitch</label>
-                                        <p className="text-sm font-mono text-zinc-400 italic">"{c.antiPitch}"</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-12 flex justify-between items-center border-t border-zinc-800 pt-6">
-                    {!isSovereign ? (
-                        <Button
-                            variant="gold"
-                            onClick={handleSovereign}
-                            disabled={synthesizingSovereign}
-                            className="flex-1 mr-4"
-                        >
-                            {synthesizingSovereign ? (mode === 'plain' ? 'Combining...' : 'Synthesizing Authority...') : (mode === 'plain' ? 'Combine Into One Top Skill' : 'Refine into One Sovereign Authority')}
-                        </Button>
-                    ) : <div className="flex-1"></div>}
-
-                    <Button onClick={onNext}>{mode === 'plain' ? 'Next Step →' : 'Proceed to Evidence →'}</Button>
-                </div>
-            </div>
+            <CandidateResultsView
+                candidates={candidates}
+                mode={mode}
+                v={v}
+                synthesizingSovereign={synthesizingSovereign}
+                onSovereign={handleSovereign}
+                onNext={onNext}
+                onBack={onBack}
+            />
         );
     }
+
+    // Derived subtitle text
+    const selectionSubtitle = isPlain
+        ? `Choose 3 things you do best. We will figure out how to sell them.`
+        : 'Select 3 core activities. The AI will synthesize them into market roles.';
+
+    const capWarningText = isPlain
+        ? `⚠ TOO MANY SKILLS: ${armory.length} (max: ${ARMORY_HARD_CAP})`
+        : `⚠ ARMORY OVERLOADED: ${armory.length} items (cap: ${ARMORY_HARD_CAP})`;
+
+    const capExplainerText = isPlain
+        ? `Focus on the 20% of skills that create 80% of your value. Remove or merge until you have ${ARMORY_HARD_CAP} or fewer.`
+        : `The 80/20 rule: your top 20% of skills generate 80% of value. Compress or delete until ≤ ${ARMORY_HARD_CAP}.`;
+
+    const analyzingHintText = isPlain
+        ? 'Finding the best way to package your skills...'
+        : 'Applying 32k context reasoning to niche down...';
+
+    const selectionTitleSuffix = isPlain ? `Pick Your Top ${v.tool_plural}` : 'Skill Selection';
 
     // Selection View
     return (
         <div className="max-w-4xl mx-auto w-full animate-fade-in">
             <SectionHeader
-                title={mode === 'plain' ? `Step 2: Pick Your Top ${v.tool_plural}` : 'Phase 2: Skill Selection'}
-                subtitle={mode === 'plain' ? 'Choose 3 things you do best. We will figure out how to sell them.' : 'Select 3 core activities. The AI will synthesize them into market roles.'}
+                title={`${v.phase_label} 2: ${selectionTitleSuffix}`}
+                subtitle={selectionSubtitle}
                 onBack={onBack}
             />
 
@@ -176,7 +250,7 @@ export const ToolCompressionPhase: React.FC<{
                 <div className="mb-6 p-4 border border-red-800/50 bg-red-900/10 space-y-3">
                     <div className="flex items-center justify-between">
                         <p className="text-xs font-mono text-red-400 uppercase">
-                            {mode === 'plain' ? `⚠ TOO MANY SKILLS: ${armory.length} (max: ${ARMORY_HARD_CAP})` : `⚠ ARMORY OVERLOADED: ${armory.length} items (cap: ${ARMORY_HARD_CAP})`}
+                            {capWarningText}
                         </p>
                         <button
                             onClick={handleSuggestMerge}
@@ -187,10 +261,7 @@ export const ToolCompressionPhase: React.FC<{
                         </button>
                     </div>
                     <p className="text-[10px] text-zinc-500">
-                        {mode === 'plain'
-                            ? `Focus on the 20% of skills that create 80% of your value. Remove or merge until you have ${ARMORY_HARD_CAP} or fewer.`
-                            : `The 80/20 rule: your top 20% of skills generate 80% of value. Compress or delete until ≤ ${ARMORY_HARD_CAP}.`
-                        }
+                        {capExplainerText}
                     </p>
                 </div>
             )}
@@ -198,7 +269,7 @@ export const ToolCompressionPhase: React.FC<{
             {/* AI Merge Suggestions */}
             {mergeSuggestions.length > 0 && (
                 <div className="mb-6 space-y-3">
-                    <h4 className="text-[10px] uppercase text-yellow-500 font-mono tracking-widest">{mode === 'plain' ? 'Suggested Combinations' : 'Compression Recommendations'}</h4>
+                    <h4 className="text-[10px] uppercase text-yellow-500 font-mono tracking-widest">{isPlain ? 'Suggested Combinations' : 'Compression Recommendations'}</h4>
                     {mergeSuggestions.map((s) => (
                         <div key={s.suggestedName} className="border border-yellow-800/30 bg-yellow-900/5 p-4">
                             <div className="flex flex-col gap-2">
@@ -255,17 +326,12 @@ export const ToolCompressionPhase: React.FC<{
                     disabled={selections.length !== 3 || analyzing}
                     onClick={handleCompress}
                 >
-                    {analyzing ? (
-                        <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                            Synthesizing Market Function...
-                        </span>
-                    ) : (mode === 'plain' ? 'Analyze My Top Skills' : 'Compress into Market Function')}
+                    {getCompressButtonText(analyzing, isPlain)}
                 </Button>
             </div>
             {analyzing && (
                 <div className="text-center mt-4 text-xs font-mono text-zinc-500 animate-pulse">
-                    {mode === 'plain' ? 'Finding the best way to package your skills...' : 'Applying 32k context reasoning to niche down...'}
+                    {analyzingHintText}
                 </div>
             )}
         </div>

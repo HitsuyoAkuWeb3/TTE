@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { ArmoryItem, Quadrant } from '../types';
 import { useVernacular } from '../contexts/VernacularContext';
 
@@ -8,10 +8,10 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
 }) => {
   const baseStyle = "font-mono text-sm px-6 py-3 uppercase tracking-wider transition-all duration-200 border disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
-    primary: "bg-zinc-100 text-black border-zinc-100 hover:bg-transparent hover:text-white",
-    secondary: "bg-transparent text-zinc-300 border-zinc-800 hover:border-zinc-500 hover:text-white",
-    danger: "bg-red-900/20 text-red-500 border-red-900 hover:bg-red-900/40",
-    gold: "bg-[#00FF41]/10 text-[#00FF41] border-[#00FF41] hover:bg-[#00FF41]/20"
+    primary: "bg-bone text-void border-2 border-bone font-bold shadow-hard hover:shadow-hard-white hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0 active:shadow-hard",
+    secondary: "bg-void text-bone border-2 border-zinc-700 hover:border-bone hover:shadow-hard",
+    danger: "bg-void text-[#FF3333] border-2 border-[#FF3333] hover:bg-[#FF3333]/10 hover:shadow-hard-hazard hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0",
+    gold: "bg-void text-[#00FF41] border-2 border-[#00FF41] hover:bg-[#00FF41]/10 hover:shadow-hard-spirit"
   };
 
   return (
@@ -23,7 +23,7 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
 
 export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
   <input
-    className="w-full bg-zinc-900/50 border border-zinc-700 text-white p-3 font-mono focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-colors"
+    className="w-full bg-[#121212] border-2 border-zinc-700 text-bone p-3 font-mono focus:outline-none focus:border-bone focus:shadow-[0_0_0_2px_rgba(245,245,240,0.1)] transition-all placeholder:text-zinc-600"
     {...props}
   />
 );
@@ -31,11 +31,11 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
 export const SectionHeader: React.FC<{ title: string, subtitle?: string, onBack?: () => void }> = ({ title, subtitle, onBack }) => (
   <div className="mb-8 border-b border-zinc-800 pb-4">
     {onBack && (
-      <button onClick={onBack} className="mb-4 text-xs font-mono text-zinc-500 hover:text-white flex items-center gap-2 transition-colors">
+      <button onClick={onBack} className="mb-4 text-xs font-mono text-zinc-500 hover:text-bone flex items-center gap-2 transition-colors">
         &larr; BACK
       </button>
     )}
-    <h2 className="text-2xl font-bold uppercase tracking-tight text-white mb-2">{title}</h2>
+    <h2 className="text-2xl font-display font-bold uppercase tracking-tight text-bone mb-2">{title}</h2>
     {subtitle && <p className="text-zinc-500 font-mono text-sm">{subtitle}</p>}
   </div>
 );
@@ -44,19 +44,49 @@ interface ArmoryMapProps {
   items: ArmoryItem[];
 }
 
+// ============================================================
+// Standalone sub-components (extracted from ArmoryMap per SonarQube)
+// ============================================================
+
+interface QuadrantLabels {
+  craft: string;
+  ritual: string;
+  sandbox: string;
+  mischief: string;
+}
+
+const CustomBackground: React.FC<{ labels: QuadrantLabels }> = ({ labels }) => (
+  <g className="pointer-events-none select-none">
+    <text x="25%" y="25%" textAnchor="middle" fill="#fff" opacity="0.12" fontSize="16" fontWeight="900" fontFamily="monospace">{labels.craft}</text>
+    <text x="75%" y="25%" textAnchor="middle" fill="#fff" opacity="0.12" fontSize="16" fontWeight="900" fontFamily="monospace">{labels.ritual}</text>
+    <text x="25%" y="75%" textAnchor="middle" fill="#fff" opacity="0.12" fontSize="16" fontWeight="900" fontFamily="monospace">{labels.sandbox}</text>
+    <text x="75%" y="75%" textAnchor="middle" fill="#fff" opacity="0.12" fontSize="16" fontWeight="900" fontFamily="monospace">{labels.mischief}</text>
+  </g>
+);
+
+const ArmoryTooltipContent: React.FC<{ active?: boolean; payload?: any[] }> = ({ active, payload }) => {
+  if (active && payload?.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-void border border-white p-2 font-mono text-xs z-30 relative">
+        <p className="font-bold text-bone">{data.verb}</p>
+        <p className="text-zinc-400">{data.quadrant}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
-  const { v, mode } = useVernacular();
+  const { v } = useVernacular();
 
 
-  // Quadrant background labels — pulled from vernacular dictionary
-  const CustomBackground = () => (
-    <g className="opacity-30 pointer-events-none select-none font-black text-4xl uppercase">
-      <text x="25%" y="25%" textAnchor="middle" fill="#fff">{v.quadrant_craft}</text>
-      <text x="75%" y="25%" textAnchor="middle" fill="#fff">{v.quadrant_ritual}</text>
-      <text x="25%" y="75%" textAnchor="middle" fill="#fff">{v.quadrant_sandbox}</text>
-      <text x="75%" y="75%" textAnchor="middle" fill="#fff">{v.quadrant_mischief}</text>
-    </g>
-  );
+  const quadrantLabels: QuadrantLabels = {
+    craft: v.quadrant_craft,
+    ritual: v.quadrant_ritual,
+    sandbox: v.quadrant_sandbox,
+    mischief: v.quadrant_mischief
+  };
 
   const [activeZone, setActiveZone] = React.useState<Quadrant | null>(null);
 
@@ -101,10 +131,12 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
 
   return (
     <div
-      className="w-full h-[400px] bg-zinc-950 border border-zinc-800 relative group"
+      className="w-full h-[600px] bg-void border-2 border-zinc-700 relative group"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setActiveZone(null)}
     >
+      {/* Scan lines overlay */}
+      <div className="absolute inset-0 pointer-events-none bg-scanlines z-1" />
       {/* Axis Labels */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">{v.axis_top}</div>
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500/50">{v.axis_bottom}</div>
@@ -121,18 +153,18 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
 
       {/* Info Card - Mirror Logic Position */}
       <div
-        className={`absolute w-64 bg-zinc-900/95 backdrop-blur border border-white/20 p-4 pointer-events-none transition-all duration-300 z-20 
+        className={`absolute w-64 bg-void border-2 border-zinc-700 p-4 pointer-events-none transition-all duration-300 z-20 
         ${activeZone ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
         ${activeZone === Quadrant.CRAFT ? 'bottom-4 right-4 translate-x-0 translate-y-0' : ''}
         ${activeZone === Quadrant.RITUAL ? 'bottom-4 left-4 translate-x-0 translate-y-0' : ''}
         ${activeZone === Quadrant.SANDBOX ? 'top-4 right-4 translate-x-0 translate-y-0' : ''}
         ${activeZone === Quadrant.MISCHIEF ? 'top-4 left-4 translate-x-0 translate-y-0' : ''}
-        ${!activeZone ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''}
+        ${activeZone ? '' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'}
         `}
       >
         {activeZone && (
           <>
-            <h4 className="text-white font-bold uppercase tracking-wider mb-1">{QUADRANT_INFO[activeZone].title}</h4>
+            <h4 className="text-bone font-bold uppercase tracking-wider mb-1">{QUADRANT_INFO[activeZone].title}</h4>
             <p className="text-xs text-zinc-300 mb-2">{QUADRANT_INFO[activeZone].desc}</p>
             <div className="text-[10px] text-zinc-500 font-mono border-t border-white/10 pt-2">
               Ex: {QUADRANT_INFO[activeZone].examples}
@@ -148,25 +180,14 @@ export const ArmoryMap: React.FC<ArmoryMapProps> = ({ items }) => {
           <YAxis type="number" dataKey="y" domain={[-10, 10]} hide />
           <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
           <ReferenceLine x={0} stroke="#666" strokeDasharray="3 3" />
-          <CustomBackground />
+          <CustomBackground labels={quadrantLabels} />
           <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
-            content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const data = payload[0].payload;
-                return (
-                  <div className="bg-black border border-white p-2 font-mono text-xs z-30 relative">
-                    <p className="font-bold text-white">{data.verb}</p>
-                    <p className="text-zinc-400">{data.quadrant}</p>
-                  </div>
-                );
-              }
-              return null;
-            }}
+            content={ArmoryTooltipContent}
           />
           <Scatter name="Armory" data={items} fill="#fff">
             {items.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.quadrant === Quadrant.RITUAL ? '#ef4444' : '#fff'} />
+              <Cell key={entry.id || `cell-${entry.verb}`} fill={entry.quadrant === Quadrant.RITUAL ? '#ef4444' : '#fff'} />
             ))}
           </Scatter>
         </ScatterChart>
@@ -180,9 +201,115 @@ export const ProgressBar: React.FC<{ current: number, total: number }> = ({ curr
   return (
     <div className="fixed top-0 left-0 w-full h-1 bg-zinc-900 z-50">
       <div
-        className="h-full bg-white transition-all duration-500 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+        className="h-full bg-bone transition-all duration-500 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>
   );
 };
+
+// ============================================================
+// RITUAL COMPONENTS — Phase 4/5 Polish
+// ============================================================
+
+export const BurnButton: React.FC<{ onBurn: () => void, className?: string }> = ({ onBurn, className = '' }) => {
+  const [progress, setProgress] = React.useState(0);
+  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const startBurn = () => {
+    if (intervalRef.current) return;
+    intervalRef.current = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          onBurn();
+          return 100;
+        }
+        return p + 4; // ~1.5s to fill (25 frames * 60ms)
+      });
+    }, 60);
+  };
+
+  const stopBurn = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setProgress(0);
+  };
+
+  return (
+    <button
+      onMouseDown={startBurn}
+      onMouseUp={stopBurn}
+      onMouseLeave={stopBurn}
+      onTouchStart={startBurn}
+      onTouchEnd={stopBurn}
+      className={`relative overflow-hidden group border border-red-900/50 text-red-500 hover:text-red-400 hover:border-red-500 hover:bg-red-900/10 transition-all px-3 py-1 text-[10px] font-mono uppercase tracking-widest ${className}`}
+    >
+      <span className="relative z-10 flex items-center gap-2">
+        <span className="text-xs">🔥</span> {progress > 0 ? 'HOLD TO BURN...' : 'BURN'}
+      </span>
+      <div 
+        className="absolute bottom-0 left-0 h-full bg-red-600/20 transition-all duration-75 ease-linear z-0"
+        style={{ width: `${progress}%` }}
+      />
+    </button>
+  );
+};
+
+export const RitualError: React.FC<{ title?: string, message: string, onDismiss?: () => void }> = ({ title = "SYSTEM FAULT", message, onDismiss }) => (
+  <div className="border-2 border-[#FF3333] bg-[#FF3333]/5 p-6 relative animate-fade-in">
+    <div className="flex items-start gap-4">
+      <div className="w-8 h-8 border-2 border-[#FF3333] flex items-center justify-center shrink-0">
+        <span className="text-[#FF3333] text-lg font-bold">!</span>
+      </div>
+      <div className="space-y-2 flex-1">
+        <h3 className="text-lg font-mono font-bold text-[#FF3333] uppercase tracking-wider">
+          {title}
+        </h3>
+        <p className="text-sm text-bone font-mono leading-relaxed">
+          {message}
+        </p>
+      </div>
+    </div>
+    {onDismiss && (
+      <button 
+        onClick={onDismiss}
+        className="absolute top-4 right-4 text-[#FF3333] hover:text-white transition-colors"
+      >
+        ✕
+      </button>
+    )}
+  </div>
+);
+
+export const RitualSuccess: React.FC<{ title: string, message?: string }> = ({ title, message }) => (
+  <div className="border-2 border-[#00FF41] bg-[#00FF41]/5 p-6 animate-fade-in text-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-2 border-[#00FF41] rounded-full flex items-center justify-center">
+        <span className="text-[#00FF41] text-2xl">✓</span>
+      </div>
+      <h3 className="text-sm uppercase tracking-[0.3em] text-[#00FF41] font-mono font-bold">
+        {title}
+      </h3>
+      {message && (
+        <p className="text-xs text-zinc-400 font-mono uppercase tracking-wider">
+          {message}
+        </p>
+      )}
+    </div>
+  </div>
+);
+
+export const LoadingRitual: React.FC<{ status?: string }> = ({ status = "ESTABLISHING NEURAL LINK..." }) => (
+  <div className="flex flex-col items-center justify-center gap-4 animate-pulse">
+    <div className="relative">
+      <div className="w-3 h-3 bg-[#00FF41] rounded-full animate-ping absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <div className="w-2 h-2 bg-[#00FF41] rounded-full relative z-10" />
+    </div>
+    <div className="text-xs font-mono text-[#00FF41] uppercase tracking-[0.2em]">
+      {status}
+    </div>
+  </div>
+);

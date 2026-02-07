@@ -45,8 +45,8 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
 
     if (phase === 'confirm') {
         return (
-            <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center animate-fade-in">
-                <div className="max-w-md w-full mx-4 border border-red-900/50 bg-zinc-950 p-8 space-y-6">
+            <div className="fixed inset-0 z-200 bg-void/90 flex items-center justify-center animate-fade-in">
+                <div className="max-w-md w-full mx-4 border border-red-900/50 bg-void p-8 space-y-6">
                     <div className="text-center space-y-2">
                         <div className="text-3xl">🔥</div>
                         <h2 className="text-sm uppercase tracking-[0.3em] text-red-400 font-mono font-bold">
@@ -59,7 +59,7 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
 
                     <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
                         <div className="text-[10px] text-zinc-500 uppercase mb-1">{v.pyre_target_label}</div>
-                        <div className="text-lg font-bold text-white font-mono">{tool.plainName}</div>
+                        <div className="text-lg font-bold text-bone font-mono">{tool.plainName}</div>
                         <div className="text-xs text-zinc-400 mt-1 italic">"{tool.functionStatement}"</div>
                     </div>
 
@@ -88,7 +88,7 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
 
     if (phase === 'burning') {
         return (
-            <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
+            <div className="fixed inset-0 z-200 bg-void flex items-center justify-center">
                 <div className="text-center space-y-8">
                     <div
                         className="text-2xl font-mono font-bold transition-all duration-300"
@@ -105,7 +105,7 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
                     <div className="relative h-32 w-64 mx-auto overflow-hidden">
                         {Array.from({ length: 20 }).map((_, i) => (
                             <div
-                                key={i}
+                                key={`particle-${i}`}
                                 className="absolute rounded-full animate-pulse"
                                 style={{
                                     width: `${4 + Math.random() * 8}px`,
@@ -141,7 +141,7 @@ export const Pyre: React.FC<PyreProps> = ({ tool, onBurnComplete, onCancel }) =>
     }
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center animate-fade-in">
+        <div className="fixed inset-0 z-200 bg-void flex items-center justify-center animate-fade-in">
             <div className="text-center space-y-4">
                 <div className="text-4xl opacity-30">🪦</div>
                 <div className="text-xs font-mono text-zinc-600 uppercase tracking-[0.3em]">

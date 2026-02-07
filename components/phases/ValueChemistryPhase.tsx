@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ToolCandidate, OperatorProfile, TheoryOfValue } from '../../types';
 import { conductMvaRadar, generateTheoryOfValue } from '../../services/geminiService';
 import { Button } from '../Visuals';
@@ -15,7 +15,7 @@ export const ValueChemistryPhase: React.FC<ValueChemistryPhaseProps> = ({ tool, 
     const { v } = useVernacular();
     const [status, setStatus] = useState<'IDLE' | 'RADAR_SCANNING' | 'DRAFTING_TOV' | 'REVIEW'>('IDLE');
     const [radarData, setRadarData] = useState<any>(null);
-    const [tov, setTov] = useState<TheoryOfValue | null>(null);
+    const [, setTov] = useState<TheoryOfValue | null>(null);
     const [forgeProgress, setForgeProgress] = useState('');
 
     const handleRadarScan = async () => {
@@ -52,13 +52,13 @@ export const ValueChemistryPhase: React.FC<ValueChemistryPhaseProps> = ({ tool, 
 
     return (
         <div className="max-w-4xl mx-auto w-full animate-fade-in space-y-8 font-mono">
-            <div className="border border-zinc-800 bg-black p-8 relative overflow-hidden">
+            <div className="border border-zinc-800 bg-void p-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-zinc-800 text-zinc-400 px-3 py-1 text-[10px]">
                     {v.phase_synthesis.toUpperCase()}
                 </div>
 
                 <div className="mb-6">
-                    <button onClick={onBack} className="text-xs text-zinc-500 hover:text-white transition-colors">&larr; {v.synthesis_back}</button>
+                    <button onClick={onBack} className="text-xs text-zinc-500 hover:text-bone transition-colors">&larr; {v.synthesis_back}</button>
                 </div>
 
                 <h2 className="text-3xl font-display font-black uppercase mb-2">{v.synthesis_title}</h2>
@@ -66,7 +66,7 @@ export const ValueChemistryPhase: React.FC<ValueChemistryPhaseProps> = ({ tool, 
 
                 {status === 'IDLE' && (
                     <div className="flex flex-col items-center justify-center py-20 border border-zinc-900 border-dashed">
-                        <p className="text-zinc-500 mb-6 text-center">{v.synthesis_scan_ready} <br /><span className="text-white">"{tool.plainName}"</span></p>
+                        <p className="text-zinc-500 mb-6 text-center">{v.synthesis_scan_ready} <br /><span className="text-bone">"{tool.plainName}"</span></p>
                         <Button onClick={handleRadarScan}>{v.synthesis_scan_cta}</Button>
                     </div>
                 )}
@@ -94,8 +94,8 @@ export const ValueChemistryPhase: React.FC<ValueChemistryPhaseProps> = ({ tool, 
                         <div>
                             <h4 className="text-zinc-500 text-[10px] uppercase mb-3 tracking-widest">{v.synthesis_shadow_title}</h4>
                             <div className="grid gap-2">
-                                {radarData.shadowBeliefs.map((belief: string, i: number) => (
-                                    <div key={i} className="text-xs text-zinc-400 border-l border-zinc-800 pl-3 py-1 bg-zinc-900/10">
+                                {radarData.shadowBeliefs.map((belief: string) => (
+                                    <div key={belief} className="text-xs text-zinc-400 border-l border-zinc-800 pl-3 py-1 bg-zinc-900/10">
                                         {belief}
                                     </div>
                                 ))}

@@ -15,12 +15,13 @@ test.describe('Phase 1: App Load & Auth Gate', () => {
         await page.goto('/');
 
         // Clerk's sign-in component should render within the auth gate
-        // The app shows "Establishing Link..." while loading, then the auth terminal
+        // The app shows "ESTABLISHING NEURAL LINK..." while loading
         await page.waitForTimeout(3000); // Allow Clerk to initialize
 
         const content = await page.content();
         const hasClerk = content.includes('cl-') || content.includes('clerk');
-        const hasEstablishing = content.includes('Establishing Link');
+        // Updated to match the new Ritual Loading state
+        const hasEstablishing = content.includes('ESTABLISHING NEURAL LINK') || content.includes('Establishing Link'); 
         const hasAuthUI = hasClerk || hasEstablishing;
 
         console.log(`Has Clerk elements: ${hasClerk}`);
@@ -55,11 +56,12 @@ test.describe('Phase 2: Static Assets & Configuration', () => {
         await page.goto('/');
         await page.waitForTimeout(2000);
 
-        // Check that Tailwind CDN loaded (custom config should be present)
-        const hasTailwind = await page.evaluate(() => {
-            return typeof (window as any).tailwind !== 'undefined';
+        // Check computed styles instead of window.tailwind (CDN checking is obsolete)
+        const bodyBg = await page.evaluate(() => {
+            return window.getComputedStyle(document.body).backgroundColor;
         });
-        expect(hasTailwind).toBeTruthy();
+        // bg-void (#000000) or close to it
+        expect(bodyBg).toBe('rgb(5, 5, 5)'); // From index.css global style
     });
 
     test('2.2 Fonts load correctly', async ({ page }) => {
@@ -67,8 +69,9 @@ test.describe('Phase 2: Static Assets & Configuration', () => {
         await page.waitForTimeout(2000);
 
         // Check JetBrains Mono and Inter are referenced
+        // Check JetBrains Mono and Inter are referenced
         const content = await page.content();
-        expect(content).toContain('JetBrains Mono');
+        expect(content).toContain('JetBrains+Mono');
         expect(content).toContain('Inter');
     });
 
