@@ -9,9 +9,10 @@ import {
   Quadrant,
   DossierSnapshot,
   ToolCandidate,
-  OperatorProfile
+  OperatorProfile,
+  SimulationResult
 } from './types';
-import { generatePilotProtocol, updateCortex } from './services/geminiService';
+import { generatePilotProtocol, updateCortex, updateVernacularMode } from './services/geminiService';
 import { logger } from './services/logger';
 import { ProgressBar } from './components/Visuals';
 import { CortexTerminal } from './components/CortexTerminal';
@@ -20,6 +21,12 @@ import { RankCeremony } from './components/RankCeremony';
 import { XP_AWARDS, getRank, getSpiralBurnXp, MythicRank } from './services/gamification';
 import { recordPhaseEntry, resetTelemetry } from './services/operatorTelemetry';
 import { useVernacular } from './contexts/VernacularContext';
+
+// Tier 1: Citadel Hardening
+import { SessionVow } from './components/SessionVow';
+import { ThreatIndicator } from './components/ThreatIndicator';
+import { ResurrectionScreen } from './components/ResurrectionScreen';
+import { ProofTier } from './components/ProofTier';
 
 // Phase Components
 import { IntroPhase } from './components/phases/IntroPhase';
@@ -46,13 +53,18 @@ export default function App() {
   const { isLoaded: clerkLoaded, user: clerkUser } = useUser();
   const { signOut, getToken } = useAuth();
 
-  // Register Clerk's getToken with the API client for automatic JWT injection
-  React.useEffect(() => {
-    setTokenGetter(() => getToken());
-  }, [getToken]);
-  
   // DEV BYPASS: Allow E2E tests to simulate a logged-in user without Clerk keys
   const isBypass = import.meta.env.DEV && globalThis.window !== undefined && new URLSearchParams(globalThis.location.search).get('test_user') === 'true';
+
+  // Register Clerk's getToken with the API client for automatic JWT injection.
+  // In bypass mode, Clerk has no active session so getToken() hangs — use a no-op instead.
+  React.useEffect(() => {
+    if (isBypass) {
+      setTokenGetter(async () => null);
+    } else {
+      setTokenGetter(() => getToken());
+    }
+  }, [getToken, isBypass]);
 
   const user = React.useMemo(() => {
     if (isBypass) return { id: 'test_user', email: 'test@sovereign.local' };
@@ -62,7 +74,35 @@ export default function App() {
 
 
 
+
   const [state, setState] = useState<SystemState>(INITIAL_STATE);
+
+  // DEV BYPASS: Auto-hydration for E2E testing
+  React.useEffect(() => {
+    if (isBypass) {
+      // Auto-acknowledge Vow
+      setSessionAcknowledgedAt(Date.now());
+      
+      // Attempt to hydrate session
+      try {
+        const tteSessionId = localStorage.getItem('tte_session_id');
+        if (tteSessionId) {
+          const saved = localStorage.getItem(`session_${tteSessionId}`);
+          if (saved) {
+            const loaded = JSON.parse(saved);
+            // Verify ownership (or allow if it matches the bypass user)
+            if (loaded.userId === 'test_user') {
+                logger.info('DEV', `Hydrating bypass session: ${tteSessionId}`);
+                setState(loaded);
+            }
+          }
+        }
+      } catch (e) {
+        logger.error('DEV', 'Failed to hydrate bypass session', e);
+      }
+    }
+  }, [isBypass]);
+
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,9 +111,12 @@ export default function App() {
   const [ceremonyRank, setCeremonyRank] = useState<MythicRank | null>(null);
   const [prevRankLevel, setPrevRankLevel] = useState(() => getRank(INITIAL_STATE.xp).level);
   const [interrogation, setInterrogation] = useState<{ phase: Phase; context: Record<string, string> } | null>(null);
-  const { v } = useVernacular();
+  const { mode, v } = useVernacular();
   const { isOrgMode } = useOrg();
   const [showOrgDashboard, setShowOrgDashboard] = useState(false);
+
+  // Tier 1.1: Session Vow — gate workspace behind intent acknowledgement
+  const [sessionAcknowledgedAt, setSessionAcknowledgedAt] = useState<number | null>(null);
 
   // XP award helper — updates state + shows toast
   const awardXp = useCallback((amount: number, reason: string) => {
@@ -104,6 +147,11 @@ export default function App() {
     updateCortex(state);
   }, [state]);
 
+  // Keep AI prompt language in sync with the vernacular mode
+  React.useEffect(() => {
+    updateVernacularMode(mode);
+  }, [mode]);
+
   // Sync profile data from Postgres API (falls back to localStorage for dev)
   React.useEffect(() => {
     if (!user) return;
@@ -132,14 +180,51 @@ export default function App() {
     })();
   }, [user]);
 
-  // Signal Fidelity Degradation: force re-calibration after 7 days of inactivity
-  const INACTIVITY_THRESHOLD_DAYS = 7;
+  // Streamlined Entry: auto-route returning users with saved tools to Archive
+  React.useEffect(() => {
+    if (!user) return;
+    (async () => {
+      let hasSavedSessions = false;
+      // Check API first
+      try {
+        const res = await apiFetch('/api/db/sessions');
+        if (res.ok) {
+          const { sessions } = await res.json();
+          if (sessions?.length > 0) hasSavedSessions = true;
+        }
+      } catch { /* API unavailable */ }
+      // Fallback: check localStorage
+      if (!hasSavedSessions) {
+        try {
+          const indexKey = `sessions_index_${user.id}`;
+          const index: string[] = JSON.parse(localStorage.getItem(indexKey) || '[]');
+          if (index.length > 0) hasSavedSessions = true;
+        } catch { /* localStorage unavailable */ }
+      }
+      // If they have saved tools and are still on INTRO, redirect to Archive
+      if (hasSavedSessions) {
+        setState(s => s.currentPhase === Phase.INTRO ? { ...s, currentPhase: Phase.ARCHIVE } : s);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Tier 1.4: Resurrection Protocol — lock interface after 30 days of inactivity
+  const RESURRECTION_THRESHOLD_DAYS = 30;
+  // Signal Fidelity Degradation: force re-calibration after 7 days
+  const SIGNAL_FIDELITY_THRESHOLD_DAYS = 7;
+  const [daysAbsent, setDaysAbsent] = React.useState(0);
   React.useEffect(() => {
     if (!state.lastActiveDate || state.accessDegraded) return;
     const lastActive = new Date(state.lastActiveDate).getTime();
     const now = Date.now();
     const daysSinceActive = (now - lastActive) / (1000 * 60 * 60 * 24);
-    if (daysSinceActive >= INACTIVITY_THRESHOLD_DAYS) {
+    setDaysAbsent(Math.floor(daysSinceActive));
+    if (daysSinceActive >= RESURRECTION_THRESHOLD_DAYS) {
+      // 30+ days → full lockout (Resurrection Protocol)
+      setState(s => ({ ...s, accessDegraded: true }));
+    } else if (daysSinceActive >= SIGNAL_FIDELITY_THRESHOLD_DAYS) {
+      // 7+ days → force re-calibration
       setState(s => ({ ...s, accessDegraded: true, currentPhase: Phase.CALIBRATION }));
     }
   }, [state.lastActiveDate, state.accessDegraded]);
@@ -147,6 +232,14 @@ export default function App() {
   // Student Model: track phase transitions for telemetry
   React.useEffect(() => {
     recordPhaseEntry(state.currentPhase);
+  }, [state.currentPhase]);
+
+  // Draft caching: auto-save when entering the Ritual Dashboard
+  React.useEffect(() => {
+    if (state.currentPhase === Phase.RITUAL_DASHBOARD && state.id && user) {
+      handleSave(state);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentPhase]);
 
   // Activity heartbeat: update lastActiveDate on phase transitions
@@ -237,6 +330,17 @@ export default function App() {
     setIsSaving(false);
   };
 
+  // Tier 5: World Forge Persistence
+  const handleSaveSimulation = (result: SimulationResult) => {
+    // Optimistic update
+    const newState = {
+        ...state,
+        simulationHistory: [...(state.simulationHistory || []), result]
+    };
+    setState(newState);
+    handleSave(newState);
+  };
+
   if ((!clerkLoaded && !isBypass)) {
     return (
       <div className="min-h-screen bg-void flex items-center justify-center">
@@ -247,6 +351,40 @@ export default function App() {
 
   if (!user) {
     return <div className="min-h-screen bg-void text-bone"><AuthTerminal /></div>;
+  }
+
+  // Tier 1.4: Resurrection Protocol — full lockout for 30+ day absence
+  if (state.accessDegraded && daysAbsent >= RESURRECTION_THRESHOLD_DAYS) {
+    return (
+      <ResurrectionScreen
+        daysAbsent={daysAbsent}
+        onResurrect={(statement) => {
+          setState(s => ({
+            ...s,
+            accessDegraded: false,
+            lastActiveDate: new Date().toISOString(),
+            sessionGoal: statement,
+          }));
+          awardXp(XP_AWARDS.PHOENIX_REBORN, 'Resurrection Protocol — returned from the void');
+          setSessionAcknowledgedAt(Date.now());
+        }}
+      />
+    );
+  }
+
+  // Tier 1.1: Session Vow — airlock before workspace
+  if (!sessionAcknowledgedAt) {
+    return (
+      <SessionVow
+        strategicGoal={state.sessionGoal || state.profile?.strategicGoal}
+        operatorName={state.profile?.name || user.email}
+        onAcknowledge={(goal) => {
+          setState(s => ({ ...s, sessionGoal: goal }));
+          setSessionAcknowledgedAt(Date.now());
+          touchActivity();
+        }}
+      />
+    );
   }
 
   const getProgress = () => {
@@ -342,6 +480,8 @@ export default function App() {
           )}
         </div>
         <OrgSwitcherPanel />
+        <ThreatIndicator />
+        <ProofTier state={state} />
         <RankBadge xp={state.xp} />
       </div>
 
@@ -367,7 +507,13 @@ export default function App() {
         {state.currentPhase === Phase.ARCHIVE && user && (
           <ArchivePhase
             userId={user.id}
-            onSelect={(loadedState) => setState({ ...loadedState, userId: user.id, profile: state.profile })}
+            onSelect={(loadedState) => {
+              // If the tool has a completed plan, route directly to the Dashboard
+              const targetPhase = (loadedState.pilotPlan && loadedState.selectedToolId)
+                ? Phase.RITUAL_DASHBOARD
+                : loadedState.currentPhase;
+              setState({ ...loadedState, userId: user.id, profile: state.profile, currentPhase: targetPhase });
+            }}
             onNew={() => setState({ ...INITIAL_STATE, userId: user.id, profile: state.profile, currentPhase: Phase.INTRO })}
           />
         )}
@@ -473,6 +619,8 @@ export default function App() {
             isSaving={isSaving}
             isFinalized={state.finalized}
             version={state.version}
+            planCreatedAt={state.planCreatedAt}
+            lastActiveDate={state.lastActiveDate}
             onGeneratePlan={async () => {
               setIsGeneratingPlan(true);
               const tool = state.candidates.find(c => c.id === state.selectedToolId);
@@ -483,12 +631,23 @@ export default function App() {
                   state.clientName,
                   state.profile || undefined
                 );
-                const newState = { ...state, pilotPlan: plan };
+                const newState = {
+                  ...state,
+                  pilotPlan: plan,
+                  planCreatedAt: state.planCreatedAt || Date.now(),
+                };
                 setState(newState);
+                // Draft caching: auto-save after plan generation
+                handleSave(newState);
               }
               setIsGeneratingPlan(false);
             }}
-            onUpdatePlan={(newPlan) => setState(s => ({ ...s, pilotPlan: newPlan }))}
+            onUpdatePlan={(newPlan) => {
+              const updated = { ...state, pilotPlan: newPlan };
+              setState(s => ({ ...s, pilotPlan: newPlan }));
+              // Draft caching: auto-save after AI refinement
+              handleSave(updated);
+            }}
             onSave={() => handleSave(state)}
             onRetroactiveAudit={() => setState(s => ({ ...s, currentPhase: Phase.VALUE_SYNTHESIS }))}
             onFinalize={() => {
@@ -519,6 +678,7 @@ export default function App() {
                 setState(s => ({ ...s, currentPhase: Phase.TOOL_LOCK }));
               }
             }}
+            onNext={() => setState(s => ({ ...s, currentPhase: Phase.RITUAL_DASHBOARD }))}
           />
         )}
 
@@ -532,6 +692,7 @@ export default function App() {
             onReAudit={() => setState(s => ({ ...s, currentPhase: Phase.ARMORY_AUDIT }))}
             onAwardXp={awardXp}
             onCremate={handleCremate}
+            onSaveSimulation={handleSaveSimulation}
           />
         )}
         </>

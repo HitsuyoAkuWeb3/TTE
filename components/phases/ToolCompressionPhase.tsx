@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArmoryItem, ToolCandidate } from '../../types';
 import { synthesizeToolDefinition, synthesizeSovereignAuthority, suggestMerge, MergeSuggestion } from '../../services/geminiService';
 import { Button, SectionHeader } from '../Visuals';
-import { useVernacular, type VernacularDictionary } from '../../contexts/VernacularContext';
+import { useVernacular, quadrantLabel, type VernacularDictionary } from '../../contexts/VernacularContext';
 
 const ARMORY_HARD_CAP = 15;
 
@@ -33,71 +33,67 @@ const getCompressButtonText = (analyzing: boolean, v: VernacularDictionary): Rea
 const CandidateResultsView: React.FC<{
     candidates: ToolCandidate[];
     v: VernacularDictionary;
-    synthesizingSovereign: boolean;
-    onSovereign: () => void;
     onNext: () => void;
     onBack: () => void;
-}> = ({ candidates, v, synthesizingSovereign, onSovereign, onNext, onBack }) => {
-    const isSovereign = candidates.length === 1 && candidates[0].isSovereign;
+}> = ({ candidates, v, onNext, onBack }) => {
+    // With Flux Fusion, we always have 1 Sovereign candidate here
+    const sovereign = candidates[0];
 
     return (
-        <div className="max-w-5xl mx-auto w-full animate-fade-in">
+        <div className="max-w-4xl mx-auto w-full animate-fade-in">
             <SectionHeader
                 title={`${v.phase_label} 2: ${v.compression_result_title}`}
-                subtitle={v.compression_result_subtitle}
+                subtitle={v.chimera_result_subtitle || 'Sovereign Authority Synthesized'}
                 onBack={onBack}
             />
-            <div className={`grid grid-cols-1 ${isSovereign ? 'md:grid-cols-1 max-w-2xl mx-auto' : 'md:grid-cols-3'} gap-6`}>
-                {candidates.map((c, idx) => (
-                    <div
-                        key={c.id}
-                        className={`border bg-zinc-900/50 flex flex-col h-full relative group transition-all duration-500
-                            ${c.isSovereign ? 'border-[#00FF41]/50 shadow-[0_0_30px_rgba(0,255,65,0.1)]' : 'border-zinc-700'}
-                        `}
-                    >
-                        <div className={`absolute top-0 right-0 p-2 text-black text-[10px] font-bold uppercase
-                            ${c.isSovereign ? 'bg-[#00FF41]' : 'bg-white'}
-                        `}>
-                            {getCandidateBadge(c.isSovereign, v, idx)}
-                        </div>
-                        <div className="p-6 grow">
-                            <div className="text-zinc-500 font-mono text-xs mb-2 uppercase">{c.originalVerb}</div>
-                            <h3 className="text-2xl font-display font-black mb-4 text-bone uppercase wrap-break-word">{c.plainName}</h3>
+            
+            {/* Sovereign Card */}
+            <div className="border border-[#00FF41]/50 bg-zinc-900/50 shadow-[0_0_30px_rgba(0,255,65,0.1)] relative p-8 mb-8">
+                 <div className="absolute top-0 right-0 p-2 bg-[#00FF41] text-black text-[10px] font-bold uppercase">
+                    {v.compression_sovereign_badge}
+                </div>
+                
+                <h3 className="text-3xl font-display font-black mb-2 text-white uppercase text-center">{sovereign.plainName}</h3>
+                <p className="text-center text-[#00FF41] font-mono text-sm mb-8">{sovereign.functionStatement}</p>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Function</span>
-                                    <p className="text-sm font-mono text-zinc-300">{c.functionStatement}</p>
-                                </div>
-                                <div>
-                                    <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">The Promise</span>
-                                    <p className="text-sm font-mono text-zinc-300">{c.promise}</p>
-                                </div>
-                                <div>
-                                    <span className="text-[10px] text-red-500/70 uppercase font-bold block mb-1">Anti-Pitch</span>
-                                    <p className="text-sm font-mono text-zinc-400 italic">"{c.antiPitch}"</p>
-                                </div>
-                            </div>
+                <div className="grid md:grid-cols-2 gap-8">
+                     <div>
+                        <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{v.candidate_promise}</span>
+                        <p className="text-sm font-mono text-zinc-300">{sovereign.promise}</p>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-red-500/70 uppercase font-bold block mb-1">{v.candidate_antipitch}</span>
+                        <p className="text-sm font-mono text-zinc-400 italic">"{sovereign.antiPitch}"</p>
+                    </div>
+                </div>
+
+                {/* Constituents */}
+                {sovereign.constituents && (
+                    <div className="mt-8 pt-6 border-t border-zinc-800">
+                        <span className="text-[10px] text-zinc-600 uppercase font-bold block mb-3 text-center tracking-widest">{v.chimera_fused_from || 'Fused From'}</span>
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {sovereign.constituents.map((c, i) => (
+                                <span key={i} className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-1 border border-zinc-800">
+                                    {c.name}
+                                </span>
+                            ))}
                         </div>
                     </div>
-                ))}
-            </div>
-
-            <div className="mt-12 flex justify-between items-center border-t border-zinc-800 pt-6">
-                {isSovereign ? (
-                    <div className="flex-1" />
-                ) : (
-                    <Button
-                        variant="gold"
-                        onClick={onSovereign}
-                        disabled={synthesizingSovereign}
-                        className="flex-1 mr-4"
-                    >
-                        {getSovereignButtonText(synthesizingSovereign, v)}
-                    </Button>
                 )}
 
-                <Button onClick={onNext}>{v.compression_proceed}</Button>
+                {/* Chimera Bond — the molecular logic */}
+                {sovereign.chimeraBond && (
+                    <div className="mt-6 pt-6 border-t border-zinc-800">
+                        <span className="text-[10px] text-[#00FF41]/60 uppercase font-bold block mb-2 text-center tracking-widest">{v.chimera_bond_label || 'Molecular Bond'}</span>
+                        <p className="text-sm font-mono text-zinc-300 text-center italic">"{sovereign.chimeraBond}"</p>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex justify-end">
+                <Button onClick={onNext} variant="gold" className="w-full md:w-auto px-12">
+                    {v.compression_proceed}
+                </Button>
             </div>
         </div>
     );
@@ -127,22 +123,23 @@ export const ToolCompressionPhase: React.FC<{
     const toggleSelection = (id: string) => {
         if (selections.includes(id)) {
             setSelections(s => s.filter(x => x !== id));
-        } else if (selections.length < 3) {
+        } else if (selections.length < 4) {
             setSelections(s => [...s, id]);
         }
     };
 
     const handleCompress = async () => {
         setAnalyzing(true);
-        const newCandidates: ToolCandidate[] = [];
+        const intermediateCandidates: ToolCandidate[] = [];
 
+        // 1. Synthesize the 3 individual definitions (Hidden from user final view)
         for (const id of selections) {
             const item = armory.find(i => i.id === id);
             if (!item) continue;
 
             const analysis = await synthesizeToolDefinition(item.verb, item.quadrant);
 
-            newCandidates.push({
+            intermediateCandidates.push({
                 id: item.id,
                 originalVerb: item.verb,
                 plainName: analysis.plainName,
@@ -154,19 +151,21 @@ export const ToolCompressionPhase: React.FC<{
             });
         }
 
-        setCandidates(newCandidates);
-        onSelectCandidates(newCandidates);
-        setAnalyzing(false);
-    };
+        // 2. Immediately Fuse into Sovereign Authority
+        const sovereign = await synthesizeSovereignAuthority(intermediateCandidates);
+        
+        // 3. Attach constituents for provenance
+        sovereign.constituents = intermediateCandidates.map(c => ({
+            name: c.plainName,
+            function: c.functionStatement
+        }));
 
-    const handleSovereign = async () => {
-        setSynthesizingSovereign(true);
-        const sovereign = await synthesizeSovereignAuthority(candidates);
+        // 4. Set the single result
         const result = [sovereign];
         setCandidates(result);
         onSelectCandidates(result);
-        setSynthesizingSovereign(false);
-    }
+        setAnalyzing(false);
+    };
 
     const handleSuggestMerge = async () => {
         setIsCompressing(true);
@@ -199,8 +198,6 @@ export const ToolCompressionPhase: React.FC<{
             <CandidateResultsView
                 candidates={candidates}
                 v={v}
-                synthesizingSovereign={synthesizingSovereign}
-                onSovereign={handleSovereign}
                 onNext={onNext}
                 onBack={onBack}
             />
@@ -286,15 +283,15 @@ export const ToolCompressionPhase: React.FC<{
                             }`}
                     >
                         <div className="font-bold text-sm mb-1">{item.verb}</div>
-                        <div className="text-[10px] font-mono opacity-60">{item.quadrant}</div>
+                        <div className="text-[10px] font-mono opacity-60">{quadrantLabel(item.quadrant, v)}</div>
                     </button>
                 ))}
             </div>
 
             <div className="flex justify-end gap-4 items-center">
-                <span className="font-mono text-zinc-500 text-sm">{selections.length} / 3 Selected</span>
+                <span className="font-mono text-zinc-500 text-sm">{v.chimera_count ? v.chimera_count.replace('{n}', String(selections.length)) : `${selections.length} / 4 Selected`}</span>
                 <Button
-                    disabled={selections.length !== 3 || analyzing}
+                    disabled={selections.length !== 4 || analyzing}
                     onClick={handleCompress}
                 >
                     {getCompressButtonText(analyzing, v)}

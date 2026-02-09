@@ -13,7 +13,7 @@
 // ============================================================
 
 import React, { useState, useCallback } from 'react';
-import { OperatorProfile, Phase } from '../types';
+import { OperatorProfile, ToolCandidate, TheoryOfValue } from '../types';
 import { generateInterrogationChallenge, scoreInterrogationResponse } from '../services/geminiService';
 import { useVernacular } from '../contexts/VernacularContext';
 
@@ -25,11 +25,11 @@ interface SimulationScenario {
 }
 
 interface SimulationChamberProps {
-    phase: Phase;
+    tool: ToolCandidate;
     profile: OperatorProfile;
-    toolName: string;
-    onComplete: (passed: boolean, score: number) => void;
-    onDismiss: () => void;
+    theoryOfValue?: TheoryOfValue | null;
+    onComplete: (passed: boolean, score: number, transcript?: { challenge: string; response: string }) => void;
+    onCancel: () => void;
 }
 
 // ── Scenario Library ─────────────────────────────────────────
@@ -67,12 +67,13 @@ const SCENARIOS: SimulationScenario[] = [
 ];
 
 export const SimulationChamber: React.FC<SimulationChamberProps> = ({
-    phase,
+    tool,
     profile,
-    toolName,
+    theoryOfValue,
     onComplete,
-    onDismiss,
+    onCancel,
 }) => {
+    const toolName = tool.plainName;
     const { v } = useVernacular();
     const [scenario, setScenario] = useState<SimulationScenario | null>(null);
     const [challenge, setChallenge] = useState<string | null>(null);
@@ -82,6 +83,9 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
 
     const PASS_THRESHOLD = 3;
 
+    // Sanitize inputs to prevent prompt injection (H127)
+    const sanitize = (str: string) => str.replace(/[{}]/g, '').trim().slice(0, 50);
+
     // Pick a random scenario and generate the challenge
     const startSimulation = useCallback(async () => {
         const picked = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
@@ -90,9 +94,12 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
         setScore(null);
         setLoading(true);
 
+        const safeTool = sanitize(toolName);
+        const safeIndustry = sanitize(profile.industry || 'professional services');
+
         const prompt = picked.promptTemplate
-            .replace('{toolName}', toolName)
-            .replace('{industry}', profile.industry || 'professional services');
+            .replace('{toolName}', safeTool)
+            .replace('{industry}', safeIndustry);
 
         const text = await generateInterrogationChallenge(prompt, profile.preferredTone);
         setChallenge(text);
@@ -105,13 +112,11 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
         setLoading(true);
         const result = await scoreInterrogationResponse(challenge, response, profile.preferredTone);
         setScore(result);
-
-        const passed = result.specificity >= PASS_THRESHOLD && result.transfer >= PASS_THRESHOLD;
-        if (passed) {
-            onComplete(true, result.specificity + result.transfer);
-        }
         setLoading(false);
-    }, [challenge, response, profile, onComplete]);
+        // Note: onComplete is triggered by the user clicking the pass button,
+        // not automatically here. This prevents the parent from unmounting
+        // the component before the operator can review their score.
+    }, [challenge, response, profile]);
 
     // Auto-start on mount
     React.useEffect(() => {
@@ -123,10 +128,10 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
-            <div className="bg-void border border-amber-800/30 rounded-lg max-w-lg w-full p-6 space-y-5">
+            <div className="bg-void border border-amber-800/30 rounded-lg max-w-lg w-full p-6 space-y-5 shadow-hard">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <div className="text-xs font-mono text-amber-400 uppercase tracking-widest font-bold">
+                    <div className="text-sm font-display text-amber-400 uppercase tracking-widest font-bold">
                         ⧫ {v.simulation_title || 'SIMULATION CHAMBER'}
                     </div>
                     {scenario && (
@@ -140,7 +145,7 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
                 {loading && !challenge && (
                     <div className="text-center py-8">
                         <span className="text-amber-400/60 font-mono text-sm animate-pulse">
-                            Generating scenario...
+                            {v.simulation_start_btn ? `${v.simulation_start_btn}...` : 'Generating scenario...'}
                         </span>
                     </div>
                 )}
@@ -149,7 +154,7 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
                 {scenario && challenge && (
                     <>
                         <div className="bg-zinc-900/50 border border-zinc-800 rounded p-4">
-                            <p className="text-xs font-mono text-zinc-500 mb-2 uppercase">Scenario</p>
+                            <p className="text-xs font-mono text-zinc-500 mb-2 uppercase">{v.simulation_archetype_label || 'Scenario'}</p>
                             <p className="text-sm font-mono text-zinc-300 leading-relaxed">
                                 {scenario.setup}
                             </p>
@@ -181,6 +186,9 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
                                     ? 'border-emerald-700/40 bg-emerald-950/10'
                                     : 'border-red-700/40 bg-red-950/10'
                             }`}>
+                                <div className="text-[10px] font-mono uppercase tracking-wider mb-2 opacity-70">
+                                    {v.simulation_score_label || 'PERFORMANCE SCORE'}
+                                </div>
                                 <div className="flex gap-6 text-xs font-mono">
                                     <div>
                                         <span className="text-zinc-500">Tactical: </span>
@@ -204,7 +212,7 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
                         {/* Actions */}
                         <div className="flex justify-end gap-3">
                             <button
-                                onClick={onDismiss}
+                                onClick={onCancel}
                                 className="px-4 py-2 text-xs font-mono text-zinc-500 border border-zinc-800 rounded hover:border-zinc-700 transition-colors"
                             >
                                 {v.simulation_exit || 'Exit'}
@@ -212,17 +220,17 @@ export const SimulationChamber: React.FC<SimulationChamberProps> = ({
 
                             {isPassing ? (
                                 <button
-                                    onClick={() => onComplete(true, (score?.specificity || 0) + (score?.transfer || 0))}
+                                    onClick={() => onComplete(true, (score?.specificity || 0) + (score?.transfer || 0), { challenge: challenge || '', response })}
                                     className="px-4 py-2 text-xs font-mono text-emerald-400 bg-emerald-950/20 border border-emerald-700/40 rounded hover:border-emerald-600 transition-colors"
                                 >
-                                    ✓ {v.simulation_complete || 'Simulation Complete'}
+                                    ✓ {v.simulation_pass_msg || 'Simulation Complete'}
                                 </button>
                             ) : score ? (
                                 <button
                                     onClick={() => { setScore(null); setResponse(''); }}
                                     className="px-4 py-2 text-xs font-mono text-amber-400 border border-amber-800/40 rounded hover:border-amber-700 transition-colors"
                                 >
-                                    Retry
+                                    {v.simulation_fail_msg || 'Retry'}
                                 </button>
                             ) : (
                                 <button

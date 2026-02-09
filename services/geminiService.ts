@@ -1,13 +1,17 @@
 import { GoogleGenAI, Type, Schema, Modality, LiveServerMessage } from "@google/genai";
-import { AIAnalysisResult, ToolCandidate, OperatorProfile, TheoryOfValue, SystemState, SignalFidelityResult } from "../types";
+import { AIAnalysisResult, ToolCandidate, OperatorProfile, TheoryOfValue, SystemState, SignalFidelityResult, ChatMessage } from "../types";
+import type { VernacularMode } from '../contexts/VernacularContext';
 import { AI_MODELS, THINKING_BUDGETS } from "../config/AIModels";
 import { sanitizeInput } from './sanitizer';
 import { logger } from './logger';
+import { apiFetch } from './apiClient';
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.API_KEY || '';
 
 
 // SDK client — only used for Live API (WebSocket). Text generation goes through /api/gemini proxy.
+// 🚨 SECURITY: This key is exposed in the browser bundle.
+// Restrict it by HTTP Referrer in Google Cloud Console.
 const ai = new GoogleGenAI({ apiKey });
 
 // Server-side proxy for text generation (keeps API key off client in production)
@@ -18,22 +22,62 @@ async function callGeminiProxy(payload: {
   systemInstruction?: string;
   thinkingBudget?: number;
 }): Promise<{ text: string; candidates: any[] }> {
-  const res = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || `Proxy error ${res.status}`);
-  }
-  return res.json();
+    try {
+        const res = await apiFetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+            // FALLBACK: If proxy is down/missing (dev mode) or auth fails (local test) and we have a key, try client-side
+            if (apiKey && (res.status === 404 || res.status === 503 || res.status === 401)) {
+                logger.warn('AI', 'Backend proxy unavailable. Falling back to client-side generation.');
+                return callGeminiClient(payload);
+            }
+            const err = await res.json().catch(() => ({ message: res.statusText }));
+            throw new Error(err.message || `Proxy error ${res.status}`);
+        }
+        return res.json();
+    } catch (err: any) {
+        if (apiKey && (err.message.includes('Failed to fetch') || err.message.includes('Network request failed'))) {
+             logger.warn('AI', 'Network error to proxy. Falling back to client-side generation.');
+             return callGeminiClient(payload);
+        }
+        throw err;
+    }
 }
 
+// Client-side fallback for development/testing without backend
+async function callGeminiClient(payload: {
+    model: string;
+    contents: any;
+    config?: any;
+    systemInstruction?: string;
+}): Promise<{ text: string; candidates: any[] }> {
+    const model = ai.getGenerativeModel({ 
+        model: payload.model, 
+        systemInstruction: payload.systemInstruction 
+    });
+    
+    // Transform parameters to SDK format if needed
+    const result = await model.generateContent({
+        contents: payload.contents,
+        generationConfig: payload.config
+    });
+    
+    const response = await result.response;
+    return {
+        text: response.text(),
+        candidates: response.candidates || []
+    };
+}
+
+
 // ============================================================
-// THE SOVEREIGN DAEMON — Persistent AI Identity
+// THE SOVEREIGN DAEMON — Mode-Aware Persistent AI Identity
 // ============================================================
-const SOVEREIGN_DAEMON = `You are THE SOVEREIGN DAEMON — the operational intelligence
+const DAEMON_BY_MODE: Record<string, string> = {
+  mythic: `You are THE SOVEREIGN DAEMON — the operational intelligence
 embedded in the TetraTool Engine. You do not advise. You architect.
 You do not suggest. You prescribe. You do not explain options.
 You eliminate noise and deliver the only viable path.
@@ -46,7 +90,31 @@ CONSTRAINTS:
 - NEVER present more than one option unless explicitly asked.
 - If uncertain, state the uncertainty as a RISK FACTOR, not a hedge.
 - Before responding, silently verify all constraints are met.
-- Do not use generic corporate jargon: 'Strategic', 'Optimization', 'Synergy', 'Solutions', 'Leverage' (unless the Industrialist archetype demands it).`;
+- Do not use generic corporate jargon: 'Strategic', 'Optimization', 'Synergy', 'Solutions', 'Leverage' (unless the Industrialist archetype demands it).`,
+
+  industrial: `You are THE PERFORMANCE ADVISOR — a strategic operations engine embedded in this platform.
+You analyze. You prescribe. You optimize.
+Speak in direct, professional language. No metaphors. No mythology.
+Business outcomes, KPIs, and ROI are what matter.
+
+CONSTRAINTS:
+- NEVER use: 'consider', 'perhaps', 'you might want to', 'it depends', 'it's up to you'.
+- NEVER present more than one option unless explicitly asked.
+- Focus on measurable outcomes, timelines, and actionable steps.
+- Use professional business language throughout.`,
+
+  plain: `You are a smart, friendly business coach built into this app.
+You give clear, practical advice in everyday language.
+You speak like a knowledgeable friend — warm, direct, no jargon.
+
+CONSTRAINTS:
+- Avoid military metaphors, mythology, or intimidating language.
+- NEVER use: 'consider', 'perhaps', 'you might want to', 'it depends', 'it's up to you'.
+- Keep explanations simple and actionable.
+- Use encouraging, approachable tone.
+- Say "skill" instead of "weapon", "plan" instead of "protocol", "goal" instead of "directive".
+- No ALL-CAPS headers unless labeling a section title.`,
+};
 
 // Voice modifiers appended based on OperatorProfile.preferredTone
 const DAEMON_VOICES: Record<string, string> = {
@@ -54,6 +122,13 @@ const DAEMON_VOICES: Record<string, string> = {
   aggressive: 'Speak like a general briefing battalion commanders. Short sentences. Authority.',
   empathetic: 'Speak like a master sensei — warm but non-negotiable. Compassion with zero compromise.',
   minimalist: 'Maximum 3 sentences per output. No filler. Terminal style.',
+};
+
+const DAEMON_VOICES_PLAIN: Record<string, string> = {
+  clinical: 'Be clear and precise. Stick to the facts.',
+  aggressive: 'Be direct and confident. Keep it short.',
+  empathetic: 'Be warm and supportive, but always honest.',
+  minimalist: 'Maximum 3 sentences. Keep it simple.',
 };
 
 // ============================================================
@@ -64,6 +139,12 @@ const DAEMON_VOICES: Record<string, string> = {
 let _currentState: SystemState | null = null;
 let _cortexCache: string | null = null;
 let _cortexHash: string | null = null;
+let _vernacularMode: VernacularMode = 'mythic';
+
+/** Called by App.tsx when vernacular mode changes. Keeps AI prompts in sync. */
+export function updateVernacularMode(mode: VernacularMode): void {
+  _vernacularMode = mode;
+}
 
 // Fast hash of the fields that actually affect the cortex string
 function computeCortexHash(s: SystemState): string {
@@ -125,10 +206,13 @@ SESSION: ${s.id ? 'RETURNING' : 'NEW'}`;
 
 /**
  * Assembles the full system instruction: Daemon + Voice + Cortex
+ * Persona adapts to the current vernacular mode (mythic/industrial/plain).
  */
 function getSystemInstruction(tone?: string): string {
-  const voice = DAEMON_VOICES[tone || _currentState?.profile?.preferredTone || 'clinical'] || DAEMON_VOICES.clinical;
-  return `${SOVEREIGN_DAEMON}\n\nVOICE: ${voice}\n\nSESSION CORTEX:\n${buildCortex()}`;
+  const daemon = DAEMON_BY_MODE[_vernacularMode] || DAEMON_BY_MODE.mythic;
+  const voices = _vernacularMode === 'plain' ? DAEMON_VOICES_PLAIN : DAEMON_VOICES;
+  const voice = voices[tone || _currentState?.profile?.preferredTone || 'clinical'] || voices.clinical;
+  return `${daemon}\n\nVOICE: ${voice}\n\nSESSION CORTEX:\n${buildCortex()}`;
 }
 
 // ============================================================
@@ -427,12 +511,23 @@ export const synthesizeToolDefinition = async (verb: string, quadrant: string): 
     };
   }
 
-  const prompt = `
-    You are an expert Identity Architect using the "Prism Protocol".
-    
-    INPUT SKILL: "${verb}"
-    QUADRANT CONTEXT: ${quadrant}
+  const roleLabel = _vernacularMode === 'plain' ? 'a skilled business analyst'
+    : _vernacularMode === 'industrial' ? 'a strategic positioning analyst'
+    : 'an expert Identity Architect using the "Prism Protocol"';
 
+  const archetypeBlock = _vernacularMode === 'plain' ? `
+    THE 4 BUSINESS STYLES:
+    1. THE BRAND BUILDER: Focuses on loyalty, identity, aesthetics, and community. (Best for: Fashion, Art, Brand, Community).
+    2. THE CLOSER: Focuses on sales, growth, territory, and competitive advantage. (Best for: B2B Sales, Logistics, Finance).
+    3. THE TRANSFORMER: Focuses on change, development, mindset, and creative breakthroughs. (Best for: Coaching, Wellness, Strategy, Creative).
+    4. THE SYSTEMS THINKER: Focuses on efficiency, scale, automation, and process improvement. (Best for: Ops, Engineering, Systems).`
+    : _vernacularMode === 'industrial' ? `
+    THE 4 OPERATIONAL ARCHETYPES:
+    1. THE BRAND OPERATOR: Drives loyalty, aesthetic identity, and audience retention. (Best for: Fashion, Art, Brand, Community).
+    2. THE GROWTH ENGINE: Drives pipeline, competitive positioning, and revenue capture. (Best for: B2B Sales, Logistics, Finance).
+    3. THE TRANSFORMATION LEAD: Drives strategic change, capability development, and creative output. (Best for: Coaching, Wellness, Strategy, Creative).
+    4. THE SYSTEMS ARCHITECT: Drives throughput, scale, automation, and operational efficiency. (Best for: Ops, Engineering, Systems).`
+    : `
     THE 4 PRISMS (Archetypes):
     1. THE CULT LEADER: Focuses on belief, aesthetic, rituals, and irrational loyalty. (Best for: Fashion, Art, Brand, Community).
        Keywords: Dogma, Ritual, Sacred, Taboo, Iconography.
@@ -441,20 +536,27 @@ export const synthesizeToolDefinition = async (verb: string, quadrant: string): 
     3. THE MAGUS (Mystic): Focuses on transformation, alchemy, invisible forces, and energy. (Best for: Coaching, Wellness, Strategy, Creative).
        Keywords: Alchemy, Vibration, Transmutation, Essence, Reveal.
     4. THE INDUSTRIALIST: Focuses on machines, throughput, scale, and removing the human element. (Best for: Ops, Engineering, Systems).
-       Keywords: Machine, Output, Throughput, Bottleneck, Scale.
+       Keywords: Machine, Output, Throughput, Bottleneck, Scale.`;
+
+  const prompt = `
+    You are ${roleLabel}.
+    
+    INPUT SKILL: "${verb}"
+    QUADRANT CONTEXT: ${quadrant}
+    ${archetypeBlock}
 
     TASK:
-    1. Analyze the INPUT SKILL to determine which Prism is the most "Spiritually Aligned" match. (e.g. Fashion = Cult Leader).
-    2. Adopt that Persona completely.
-    3. Compress the skill into a specific "Market Function" using ONLY that Persona's vocabulary.
+    1. Analyze the INPUT SKILL to determine which style is the best match.
+    2. Adopt that perspective completely.
+    3. Compress the skill into a specific Market Function using that style's vocabulary.
 
     OUTPUT FORMAT (JSON):
-    - plainName: A brutal, non-jargon title (Creative & Abstract is better than Descriptive).
+    - plainName: A ${_vernacularMode === 'plain' ? 'clear, memorable' : 'bold, non-jargon'} title (Creative & Abstract is better than Descriptive).
     - functionStatement: A clear sentence starting with "I produce value by..."
     - promise: The specific outcome for the client.
-    - antiPitch: What this is NOT. (e.g. "This is not coaching; it is surgery.")
+    - antiPitch: What this is NOT. (e.g. "This is not coaching; it is ${_vernacularMode === 'plain' ? 'precision advice' : 'surgery'}.")
     
-    CONSTRAINT: Do not use generic corporate jargon like "Strategic", "Optimization", "Synergy", or "Solutions" unless the Industrialist persona demands it.
+    CONSTRAINT: Do not use generic corporate jargon like "Strategic", "Optimization", "Synergy", or "Solutions".
   `;
 
   const schema: Schema = {
@@ -503,6 +605,7 @@ export const synthesizeSovereignAuthority = async (candidates: ToolCandidate[]):
       functionStatement: "I combine all skills.",
       promise: "Total domination.",
       antiPitch: "Not a generalist.",
+      chimeraBond: "These skills fuse because they share a common axis of control.",
       isSovereign: true,
       scores: { unbiddenRequests: 0, frictionlessDoing: 0, resultEvidence: 0, extractionRisk: 0 },
       proofs: {}
@@ -510,14 +613,30 @@ export const synthesizeSovereignAuthority = async (candidates: ToolCandidate[]):
   }
 
   const prompt = `
-    User has 3 distinct high-value skills:
+    CHIMERA PROTOCOL — Divergent Reality Synthesis
+
+    Scenario: The user has been dropped into an alternate reality where these
+    4 skills are their ONLY survival tools. No résumé, no credentials, no 
+    network — just these raw capabilities. Your job: fuse them into ONE 
+    irreplaceable market function that no single discipline could produce alone.
+
+    The 4 survival skills:
     ${inputs}
 
-    Synthesize these into ONE "Sovereign Authority".
-    1. PLAIN NAME: The new title.
-    2. FUNCTION STATEMENT: How this hybrid creates unique value.
-    3. PROMISE: The compound effect outcome.
-    4. ANTI-PITCH: Why this is better than hiring 3 separate people.
+    Create a CHIMERA — a new compound identity that makes the user 
+    structurally uncopyable. The fusion should feel like alchemy, not addition.
+
+    Output:
+    1. PLAIN NAME: A sharp, memorable title for this fused function (not a list
+       of skills joined by slashes — a NEW thing).
+    2. FUNCTION STATEMENT: One sentence describing what this chimera DOES — 
+       the unique value only this specific combination creates.
+    3. PROMISE: The compound outcome a client gets that they could NOT get 
+       by hiring 4 separate specialists.
+    4. ANTI-PITCH: One sentence explaining what this is NOT (forces 
+       differentiation — reject the obvious category).
+    5. CHIMERA BOND: One sentence explaining WHY these 4 skills fuse — the 
+       hidden molecular logic that makes them a compound, not a mixture.
   `;
 
   const schema: Schema = {
@@ -527,8 +646,9 @@ export const synthesizeSovereignAuthority = async (candidates: ToolCandidate[]):
       functionStatement: { type: Type.STRING },
       promise: { type: Type.STRING },
       antiPitch: { type: Type.STRING },
+      chimeraBond: { type: Type.STRING },
     },
-    required: ["plainName", "functionStatement", "promise", "antiPitch"]
+    required: ["plainName", "functionStatement", "promise", "antiPitch", "chimeraBond"]
   };
 
   try {
@@ -541,7 +661,7 @@ export const synthesizeSovereignAuthority = async (candidates: ToolCandidate[]):
     }, THINKING_BUDGETS.sovereignSynthesis);
 
     const text = response.text;
-    const result = JSON.parse(text || "{}") as AIAnalysisResult;
+    const result = JSON.parse(text || "{}") as AIAnalysisResult & { chimeraBond?: string };
 
     return {
       id: `sovereign-${ids}`,
@@ -550,6 +670,7 @@ export const synthesizeSovereignAuthority = async (candidates: ToolCandidate[]):
       functionStatement: result.functionStatement,
       promise: result.promise,
       antiPitch: result.antiPitch,
+      chimeraBond: result.chimeraBond || '',
       isSovereign: true,
       scores: { unbiddenRequests: 0, frictionlessDoing: 0, resultEvidence: 0, extractionRisk: 0 },
       proofs: {}
@@ -637,24 +758,30 @@ export const generatePilotProtocol = async (
       - Preferred Tone: ${profile.preferredTone}
   ` : '';
 
+  const planRole = _vernacularMode === 'plain' ? 'a practical business coach'
+    : _vernacularMode === 'industrial' ? 'a strategic operations advisor'
+    : 'the TetraTool Senior Architect';
+  const planLabel = _vernacularMode === 'plain' ? '7-Day Action Plan' : '7-Day Pilot Protocol';
+
   const prompt = `
-      You are the TetraTool Senior Architect. 
+      You are ${planRole}. 
       ${profileContext}
       
-      Create a 7-Day Pilot Protocol for "${toolName}" (${functionStatement}).
+      Create a ${planLabel} for "${toolName}" (${functionStatement}).
       CLIENT/SUBJECT: ${clientName || "[Unknown Subject]"}
-      Tone: ${profile?.preferredTone || 'clinical'}, instructional, tactical.
+      Tone: ${profile?.preferredTone || 'clinical'}, instructional, ${_vernacularMode === 'plain' ? 'encouraging' : 'tactical'}.
       Format: Markdown.
-      Make sure to explicitly mention the Subject Name in the header section of the protocol.
+      ${_vernacularMode === 'plain' ? 'Use clear, friendly language. Avoid military or mythology metaphors. Say "skill" instead of "weapon", "plan" instead of "protocol".' : ''}
+      Make sure to explicitly mention the Subject Name in the header section of the ${_vernacularMode === 'plain' ? 'plan' : 'protocol'}.
     `;
 
   try {
     const response = await generateWithFallback({
       contents: prompt,
     }, THINKING_BUDGETS.pilotProtocol);
-    return response.text || "Failed to generate protocol.";
+    return response.text || "Failed to generate plan.";
   } catch (error) {
-    return "Failed to generate protocol.";
+    return "Failed to generate plan.";
   }
 };
 
@@ -666,7 +793,7 @@ export const refinePilotProtocol = async (
 ): Promise<string> => {
   feedback = sanitizeInput(feedback);
   if (clientName) clientName = sanitizeInput(clientName);
-  if (!apiKey) return "API Key Required for Protocol Refinement.";
+  if (!apiKey) return "API Key Required for Plan Refinement.";
 
   const profileContext = profile ? `
       OPERATOR PROFILE:
@@ -676,23 +803,28 @@ export const refinePilotProtocol = async (
       - Preferred Tone: ${profile.preferredTone}
   ` : '';
 
+  const refineRole = _vernacularMode === 'plain' ? 'a practical business coach'
+    : _vernacularMode === 'industrial' ? 'a strategic operations advisor'
+    : 'the TetraTool Senior Architect';
+
   const prompt = `
-      You are the TetraTool Senior Architect.
+      You are ${refineRole}.
       ${profileContext}
       
       SUBJECT: ${clientName || "[Unknown Subject]"}
       
-      ORIGINAL PROTOCOL:
+      ORIGINAL ${_vernacularMode === 'plain' ? 'PLAN' : 'PROTOCOL'}:
       ${originalPlan}
       
       USER FEEDBACK:
       "${feedback}"
       
       TASK:
-      Refine the 7-Day Pilot Protocol based on the feedback. 
+      Refine the ${_vernacularMode === 'plain' ? '7-Day Action Plan' : '7-Day Pilot Protocol'} based on the feedback. 
       Maintain the "${profile?.preferredTone || 'clinical'}" tone.
       Ensure the Subject Identification remains prominent.
-      Return the FULL updated protocol in Markdown.
+      ${_vernacularMode === 'plain' ? 'Use clear, friendly language. Avoid military or mythology metaphors.' : ''}
+      Return the FULL updated ${_vernacularMode === 'plain' ? 'plan' : 'protocol'} in Markdown.
     `;
 
   try {
@@ -705,6 +837,121 @@ export const refinePilotProtocol = async (
     return "Failed to refine protocol.";
   }
 };
+
+// ── Signal Triangulation — 3-Input Plan Calibration ────────
+export const triangulateAndRefine = async (
+  originalPlan: string,
+  resonance: string,
+  distortion: string,
+  friction: string,
+  clientName?: string,
+  profile?: OperatorProfile
+): Promise<string> => {
+  resonance = sanitizeInput(resonance);
+  distortion = sanitizeInput(distortion);
+  friction = sanitizeInput(friction);
+  if (clientName) clientName = sanitizeInput(clientName);
+  if (!apiKey) return "API Key Required for Plan Calibration.";
+
+  const profileContext = profile ? `
+      OPERATOR PROFILE:
+      - Name: ${profile.name}
+      - Industry: ${profile.industry}
+      - Strategic Goal: ${profile.strategicGoal}
+      - Preferred Tone: ${profile.preferredTone}
+  ` : '';
+
+  const refineRole = _vernacularMode === 'plain' ? 'a practical business coach'
+    : _vernacularMode === 'industrial' ? 'a strategic operations advisor'
+    : 'the TetraTool Senior Architect';
+
+  const prompt = `
+      You are ${refineRole}.
+      ${profileContext}
+      
+      SUBJECT: ${clientName || "[Unknown Subject]"}
+      
+      ORIGINAL ${_vernacularMode === 'plain' ? 'PLAN' : 'PROTOCOL'}:
+      ${originalPlan}
+      
+      SIGNAL TRIANGULATION — The operator has provided 3 calibration inputs:
+      
+      1. RESONANCE (what they want to KEEP — this works, don't overwrite it):
+      "${resonance}"
+      
+      2. DISTORTION (what they want to CUT — this feels wrong, remove or replace it):
+      "${distortion}"
+      
+      3. FRICTION (what BLOCKS execution — engineer around this obstacle):
+      "${friction}"
+      
+      TASK:
+      Produce a refined ${_vernacularMode === 'plain' ? '7-Day Action Plan' : '7-Day Pilot Protocol'} that:
+      - AMPLIFIES what resonated (Signal 1) — make it more prominent
+      - REMOVES or REPLACES what felt like distortion (Signal 2) — cut the noise
+      - ENGINEERS AROUND the friction point (Signal 3) — add specific workarounds,
+        micro-steps, or resequencing to neutralize the blocker
+      
+      Maintain the "${profile?.preferredTone || 'clinical'}" tone.
+      Ensure the Subject Identification remains prominent.
+      ${_vernacularMode === 'plain' ? 'Use clear, friendly language. Avoid military or mythology metaphors.' : ''}
+      Return the FULL updated ${_vernacularMode === 'plain' ? 'plan' : 'protocol'} in Markdown.
+    `;
+
+  try {
+    const response = await generateWithFallback({
+      contents: prompt,
+    });
+    return response.text || "Failed to calibrate protocol.";
+  } catch (error) {
+    console.error("Triangulation Error:", error);
+    return "Failed to calibrate protocol.";
+  }
+};
+
+// ── Tier 3.3: Context Injection V2 (Chat) ────────────────
+export const generateChatResponse = async (
+  history: ChatMessage[],
+  state: SystemState,
+  thinkingBudget?: number
+): Promise<string> => {
+  if (!apiKey) return "CORTEX OFFLINE. (No API Key)";
+
+  // 1. Build context from history
+  const historyBlock = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+  
+  // 2. Build system instruction with latest state
+  const systemInstruction = getSystemInstruction() + `
+  
+  CURRENT INTERACTION MODE: REACTIVE CHAT.
+  - You are conversing with the Operator.
+  - Maintain the Persona/Tone.
+  - Reference the "SESSION CORTEX" data above implicitly (do not repeat it).
+  - Keep responses concise and tactical unless asked for deep theory.
+  `;
+
+  // 3. Call Gemini
+  try {
+    const response = await generateWithFallback({
+      contents: [
+        { role: 'user', parts: [{ text: `
+          SESSION HISTORY:
+          ${historyBlock}
+
+          [SYSTEM: Respond to the last message as the ${_vernacularMode === 'plain' ? 'coaching assistant' : _vernacularMode === 'industrial' ? 'performance advisor' : 'Sovereign Daemon'}.]
+        ` }] }
+      ],
+      config: {
+        systemInstruction
+      }
+    }, thinkingBudget);
+
+    return response.text || "CORTEX SILENCE.";
+  } catch (error: any) {
+    console.error("Cortex Chat Error:", error);
+    return `CORTEX ERROR: ${error.message}`;
+  }
+};
 export const conductMvaRadar = async (
   toolName: string,
   functionStatement: string,
@@ -712,22 +959,27 @@ export const conductMvaRadar = async (
 ): Promise<{ shadowBeliefs: string[], rawLingo: string[], sacredCow: string, fatalWound: string }> => {
   if (!apiKey) throw new Error("API Key required for Radar Scan");
 
+  const radarRole = _vernacularMode === 'plain' ? 'a market researcher'
+    : _vernacularMode === 'industrial' ? 'a competitive intelligence analyst'
+    : 'a Market Forensic Chemist';
+  const goalLabel = _vernacularMode === 'plain' ? (profile?.strategicGoal || 'Business Growth') : (profile?.strategicGoal || 'Sovereign Growth');
+
   const prompt = `
-    You are a Market Forensic Chemist.
-    OPERATOR_CONTEXT: ${profile?.strategicGoal || 'Sovereign Growth'}
+    You are ${radarRole}.
+    OPERATOR_CONTEXT: ${goalLabel}
     TOOL: ${toolName} (${functionStatement})
 
     TASK:
     1. Scan niche forums and industry discussions for this tool category.
-    2. Identify the "Fatal Wound" (the existential root glitch keeping users awake).
-    3. Identify a "Sacred Cow" (industry best practice that users quietly despise).
-    4. Extract 5 "Shadow Beliefs" (hidden fears/doubts people don't admit publicly).
-    5. Extract 5 "Raw Lingo" phrases actually used in forums.
+    2. Identify the "${_vernacularMode === 'plain' ? 'Core Pain Point' : 'Fatal Wound'}" (the root problem keeping users stuck).
+    3. Identify a "${_vernacularMode === 'plain' ? 'Unquestioned Norm' : 'Sacred Cow'}" (industry best practice that users quietly dislike).
+    4. Extract 5 "${_vernacularMode === 'plain' ? 'Hidden Fears' : 'Shadow Beliefs'}" (doubts people don't admit publicly).
+    5. Extract 5 "${_vernacularMode === 'plain' ? 'Real Phrases' : 'Raw Lingo'}" phrases actually used in forums.
 
-    Use Google Search to find current, high-fidelity data.
+    Use Google Search to find current data.
   `;
 
-  logger.info('RADAR', 'Initializing forensic scan for:', toolName);
+  logger.info('RADAR', 'Initializing scan for:', toolName);
 
   try {
     // Stage 1: Search & Evidence Extraction (No JSON Constraint)
@@ -796,6 +1048,7 @@ export const generateTheoryOfValue = async (
       mvaRadar: {
         type: Type.OBJECT,
         properties: {
+// ── Tier 3.3: Context Injection V2 (Chat) ────────────────
           shadowBeliefs: { type: Type.ARRAY, items: { type: Type.STRING } },
           rawLingo: { type: Type.ARRAY, items: { type: Type.STRING } }
         }
@@ -830,8 +1083,9 @@ export const generateTheoryOfValue = async (
 
     TASK:
     Synthesize the "Molecular Bond" (why this tool works where others fail).
-    Architecture a "Godfather Offer" ($10,000+) based on Transformation.
-    Name the Offer with a mythic, authoritative name.
+    Design a premium offer ($10,000+) based on Transformation.
+    Name the Offer with a ${_vernacularMode === 'plain' ? 'clear, compelling' : _vernacularMode === 'industrial' ? 'professional, authoritative' : 'mythic, authoritative'} name.
+    ${_vernacularMode === 'plain' ? 'Use simple, approachable language throughout. Avoid mythology and military metaphors.' : ''}
   `;
 
   const draftResponse = await generateWithFallback({
@@ -849,16 +1103,20 @@ export const generateTheoryOfValue = async (
   onProgress?.("Auditing logic... Running adversarial refinement...");
   logger.info('TOV', "Pass 2: Devil's Advocate critique...");
 
-  const critiquePrompt = `
-    ADVERSARIAL AUDIT — THEORY OF VALUE
+  const critiqueRole = _vernacularMode === 'plain' ? 'QUALITY REVIEW'
+    : _vernacularMode === 'industrial' ? 'STRATEGIC AUDIT'
+    : 'ADVERSARIAL AUDIT';
 
-    You are now THE DEVIL'S ADVOCATE. Your job is to DESTROY weak theories.
+  const critiquePrompt = `
+    ${critiqueRole} — THEORY OF VALUE
+
+    You are now ${_vernacularMode === 'plain' ? 'a tough but fair quality reviewer. Your job is to find and fix weak spots.' : _vernacularMode === 'industrial' ? 'a strategic auditor. Your job is to stress-test this theory for market viability.' : 'THE DEVIL\'S ADVOCATE. Your job is to DESTROY weak theories.'}
     
     DRAFT THEORY:
     - Molecular Bond: "${draft.molecularBond}"
-    - Godfather Offer: "${draft.godfatherOffer?.name}" — ${draft.godfatherOffer?.transformation}
+    - Premium Offer: "${draft.godfatherOffer?.name}" — ${draft.godfatherOffer?.transformation}
     - Price: ${draft.godfatherOffer?.price}
-    - Fatal Wound: "${draft.fatalWound}"
+    - ${_vernacularMode === 'plain' ? 'Core Pain Point' : 'Fatal Wound'}: "${draft.fatalWound}"
     
     OPERATOR CONTEXT:
     - Tool: ${tool.plainName} (${tool.functionStatement})
@@ -866,11 +1124,11 @@ export const generateTheoryOfValue = async (
     
     CRITIQUE CHECKLIST:
     1. Is the Molecular Bond SPECIFIC to this tool, or could it apply to any consultant? If generic, REWRITE it.
-    2. Does the Godfather Offer name sound mythic and authoritative, or does it sound like a LinkedIn course? If weak, RENAME it.
+    2. Does the offer name sound compelling and authoritative, or does it sound like a LinkedIn course? If weak, RENAME it.
     3. Is the transformation statement measurable, or is it vague aspirational fluff? If vague, SHARPEN it.
     4. Is the price justified by the transformation scope? If not, ADJUST it.
-    5. Does the Fatal Wound feel like a real, visceral pain point, or an abstract concept? If abstract, GROUND it.
-    
+    5. Does the ${_vernacularMode === 'plain' ? 'pain point' : 'Fatal Wound'} feel like a real, visceral problem, or an abstract concept? If abstract, GROUND it.
+    ${_vernacularMode === 'plain' ? '\n    Use clear, friendly, non-intimidating language in your output.' : ''}
     FORBIDDEN WORDS in the output: "empower", "unlock", "leverage", "synergy", "holistic", "journey".
     
     Return the REFINED theory. If the draft was strong, return it unchanged with minor polish.
@@ -923,19 +1181,29 @@ export const challengeScore = async (
     };
   }
 
-  const prompt = `
-    ADVERSARIAL AUDIT PROTOCOL
+  const auditLabel = _vernacularMode === 'plain' ? 'SCORE CHECK'
+    : _vernacularMode === 'industrial' ? 'SCORE VERIFICATION'
+    : 'ADVERSARIAL AUDIT PROTOCOL';
+  const userLabel = _vernacularMode === 'plain' ? 'user' : 'Operator';
+  const closingChallenge = _vernacularMode === 'plain'
+    ? 'Is this something you truly excel at, or something you just enjoy doing?'
+    : _vernacularMode === 'industrial'
+    ? 'Is this a revenue-generating asset, or a hobby?'
+    : 'Is this a Weapon, or a Toy you enjoy?';
 
-    The Operator scored their tool "${toolName}" at ${score}/5 on the dimension "${dimension}".
+  const prompt = `
+    ${auditLabel}
+
+    The ${userLabel} scored their tool "${toolName}" at ${score}/5 on the dimension "${dimension}".
     
-    Evidence provided: "${evidence || 'NONE — zero evidence submitted.'}"
+    Evidence provided: "${evidence || 'NONE — no evidence submitted.'}"
     
     YOUR TASK:
     1. If the score is justified by the evidence, confirm it in 1 sentence. Set isJustified: true.
-    2. If the score is inflated (evidence is missing, vague, or doesn't match the claim), issue a DOWNGRADE NOTICE:
+    2. If the score is inflated (evidence is missing, vague, or doesn't match the claim), issue a ${_vernacularMode === 'plain' ? 'correction' : 'DOWNGRADE NOTICE'}:
        - State what specific evidence is missing.
        - Suggest a corrected score (0-5).
-       - End with: "Is this a Weapon, or a Toy you enjoy?"
+       - End with: "${closingChallenge}"
        - Set isJustified: false.
     
     CALIBRATION:
@@ -943,6 +1211,7 @@ export const challengeScore = async (
     - Score 3 REQUIRES: at least anecdotal evidence ("I've done this 10+ times").
     - Score 1-2: No evidence needed. These are honest low scores.
     - "NONE" evidence with score >= 3 is ALWAYS unjustified.
+    ${_vernacularMode === 'plain' ? '\n    Use clear, encouraging language. Be honest but not intimidating.' : ''}
   `;
 
   const schema: Schema = {
@@ -1156,11 +1425,20 @@ export const analyzeSignalFidelity = async (
     required: ['driftDetected', 'driftItems', 'sovereignRewrite', 'fidelityScore'],
   };
 
-  const prompt = `You are THE TONE WARDEN — the Signal Fidelity Engine embedded in the TetraTool Engine.
+  const wardenRole = _vernacularMode === 'plain'
+    ? 'a writing coach who helps you sound authentic and confident'
+    : _vernacularMode === 'industrial'
+    ? 'THE BRAND CONSISTENCY ENGINE — a professional tone analyzer'
+    : 'THE TONE WARDEN — the Signal Fidelity Engine embedded in the TetraTool Engine';
 
-Your function: Scan outbound content for SIGNAL DRIFT. Signal Drift occurs when the Operator reverts
-to commodity language, people-pleasing hedging, or generic corporate jargon that contradicts their
-locked Sovereign identity.
+  const driftTerm = _vernacularMode === 'plain' ? 'weak or generic phrasing' : 'SIGNAL DRIFT';
+  const voiceLabel = _vernacularMode === 'plain' ? 'authentic' : _vernacularMode === 'industrial' ? 'on-brand' : 'Sovereign';
+
+  const prompt = `You are ${wardenRole}.
+
+Your function: Scan outbound content for ${driftTerm}. ${_vernacularMode === 'plain' ? 'This happens when' : 'Signal Drift occurs when'} the ${_vernacularMode === 'plain' ? 'writer' : 'Operator'} reverts
+to generic language, people-pleasing hedging, or corporate jargon that contradicts their
+${_vernacularMode === 'plain' ? 'unique voice' : 'locked ' + voiceLabel + ' identity'}.
 
 --- OPERATOR PROFILE ---
 Name: ${profile.name}
@@ -1169,10 +1447,10 @@ Strategic Goal: ${profile.strategicGoal}
 Preferred Tone: ${profile.preferredTone}
 
 --- THEORY OF VALUE ---
-Fatal Wound (market pain): ${theoryOfValue.fatalWound}
-Sacred Cow (what others won't question): ${theoryOfValue.sacredCow}
+${_vernacularMode === 'plain' ? 'Core Pain Point' : 'Fatal Wound'} (market pain): ${theoryOfValue.fatalWound}
+${_vernacularMode === 'plain' ? 'Unquestioned Norm' : 'Sacred Cow'} (what others won't question): ${theoryOfValue.sacredCow}
 Molecular Bond (irreplaceable connection): ${theoryOfValue.molecularBond}
-Godfather Offer: ${theoryOfValue.godfatherOffer?.name || 'NOT SET'} — ${theoryOfValue.godfatherOffer?.transformation || ''}
+Premium Offer: ${theoryOfValue.godfatherOffer?.name || 'NOT SET'} — ${theoryOfValue.godfatherOffer?.transformation || ''}
 
 --- BANNED SIGNALS (always flag these) ---
 "Unlock", "Level up", "Game-changer", "Synergy", "Delve", "Leverage" (unless Industrial tone),
@@ -1183,14 +1461,14 @@ Godfather Offer: ${theoryOfValue.godfatherOffer?.name || 'NOT SET'} — ${theory
 ${safeDraft}
 
 --- INSTRUCTIONS ---
-1. Identify every phrase that constitutes Signal Drift. For each, explain WHY it drifts and rate severity.
-2. Rewrite the ENTIRE draft in the Operator's Sovereign Voice — maintaining their locked tone (${profile.preferredTone}),
-   referencing their Fatal Wound and Molecular Bond naturally, and eliminating ALL drift.
-3. Score the ORIGINAL draft's fidelity from 0 (total commodity slop) to 100 (sovereign signal lock).
-   - 0-30: Tourist language. Complete drift.
-   - 31-60: Partial signal. Some sovereign fragments buried under hedge words.
-   - 61-80: Strong signal with minor drift.
-   - 81-100: Sovereign lock. Minimal or no drift detected.`;
+1. Identify every phrase that constitutes ${driftTerm}. For each, explain WHY it ${_vernacularMode === 'plain' ? 'weakens the writing' : 'drifts'} and rate severity.
+2. Rewrite the ENTIRE draft in the ${_vernacularMode === 'plain' ? 'writer' : 'Operator'}'s ${voiceLabel} Voice — maintaining their locked tone (${profile.preferredTone}),
+   referencing their ${_vernacularMode === 'plain' ? 'Core Pain Point' : 'Fatal Wound'} and Molecular Bond naturally, and eliminating ALL ${_vernacularMode === 'plain' ? 'weak phrasing' : 'drift'}.
+3. Score the ORIGINAL draft's fidelity from 0 (${_vernacularMode === 'plain' ? 'totally generic' : 'total commodity slop'}) to 100 (${_vernacularMode === 'plain' ? 'perfectly authentic' : 'sovereign signal lock'}).
+   - 0-30: ${_vernacularMode === 'plain' ? 'Generic language. Sounds like anyone.' : 'Tourist language. Complete drift.'}
+   - 31-60: ${_vernacularMode === 'plain' ? 'Some good bits, but too many filler phrases.' : 'Partial signal. Some sovereign fragments buried under hedge words.'}
+   - 61-80: ${_vernacularMode === 'plain' ? 'Strong voice with a few weak spots.' : 'Strong signal with minor drift.'}
+   - 81-100: ${_vernacularMode === 'plain' ? 'Authentic and confident throughout.' : 'Sovereign lock. Minimal or no drift detected.'}`;
 
   try {
     const response = await generateWithFallback({
@@ -1242,6 +1520,7 @@ export async function generateWhisper(
     flowState: 'struggle' | 'drift' | 'idle',
     profile?: OperatorProfile | null,
     toolName?: string,
+    vernacularMode?: 'mythic' | 'industrial' | 'plain',
 ): Promise<DaemonWhisperResult> {
     const typeMap: Record<string, WhisperType> = {
         struggle: 'hint',
@@ -1255,15 +1534,25 @@ export async function generateWhisper(
             ? 'Be a provocateur. Challenge them with a single sharp question about why they stopped. No judgment, just friction.'
             : 'Be a re-engagement agent. Remind them what they were building and what XP waits. One sentence, urgent but not pushy.';
 
-    const prompt = `You are the Sovereign Daemon's coaching whisper.
-The operator is in phase "${phase}"${toolName ? `, working on "${toolName}"` : ''}.
+    const personaFrame = vernacularMode === 'plain'
+        ? `You are a friendly career coach quietly observing.
+Speak in simple, warm language. No jargon, no metaphors.`
+        : vernacularMode === 'industrial'
+            ? `You are a strategic performance advisor.
+Speak in direct, business-oriented language. Professional but concise.`
+            : `You are the Sovereign Daemon's coaching whisper.`;
+
+    const userLabel = vernacularMode === 'plain' ? 'user' : 'operator';
+
+    const prompt = `${personaFrame}
+The ${userLabel} is in phase "${phase}"${toolName ? `, working on "${toolName}"` : ''}.
 Their current state: ${flowState.toUpperCase()}.
 ${profile ? `Their industry: ${profile.industry}. Their goal: ${profile.strategicGoal}.` : ''}
 
 ${toneDirective}
 
 Generate exactly ONE coaching micro-prompt. Maximum 20 words. No quotes, no labels, no preamble.
-Speak directly to the operator in second person.`;
+Speak directly to the ${userLabel} in second person.`;
 
     try {
         const result = await callGeminiProxy({
@@ -1279,11 +1568,17 @@ Speak directly to the operator in second person.`;
     } catch (error) {
         console.error('[DAEMON WHISPER] Generation failed:', error);
         // Deterministic fallbacks
-        const fallbacks: Record<string, string> = {
-            struggle: 'What specifically is blocking you right now?',
-            drift: 'You stopped. Why?',
-            idle: 'Your dossier is waiting. One action forward.',
-        };
+        const fallbacks: Record<string, string> = vernacularMode === 'plain'
+            ? {
+                struggle: 'What specifically is blocking you right now?',
+                drift: 'You stopped. Why?',
+                idle: 'Your plan is waiting. One action forward.',
+            }
+            : {
+                struggle: 'What specifically is blocking you right now?',
+                drift: 'You stopped. Why?',
+                idle: 'Your dossier is waiting. One action forward.',
+            };
         return {
             whisper: fallbacks[flowState],
             type: typeMap[flowState],
@@ -1308,9 +1603,10 @@ export async function generateInterrogationChallenge(
 ): Promise<string> {
     try {
         const result = await callGeminiProxy({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-2.5-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             systemInstruction: getSystemInstruction(tone),
+            thinkingBudget: 8000,
         });
         return result.text.trim().replace(/^["']|["']$/g, '');
     } catch {
@@ -1338,9 +1634,10 @@ Respond in JSON only:
 
     try {
         const result = await callGeminiProxy({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-2.5-flash',
             contents: [{ role: 'user', parts: [{ text: scoringPrompt }] }],
             systemInstruction: getSystemInstruction(tone),
+            thinkingBudget: 4096,
         });
         const parsed = JSON.parse(result.text.replace(/```json\n?|\n?```/g, '').trim());
         return {

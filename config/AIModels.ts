@@ -13,7 +13,7 @@ export const AI_MODELS = {
     // Text & Reasoning Models
     text: {
         primary: {
-            id: 'gemini-2.5-flash-preview-05-20', // Current stable preview
+            id: 'gemini-2.5-flash', // GA model (since June 2025)
             timeout: 15000
         },
         fallback: {

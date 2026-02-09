@@ -260,6 +260,11 @@ export interface VernacularDictionary {
     simulation_placeholder: string;
     simulation_exit: string;
     simulation_complete: string;
+    simulation_fail_msg: string;
+    simulation_score_label: string;
+    simulation_archetype_label: string;
+    simulation_start_btn: string;
+    simulation_pass_msg: string;
 
     // ── Evidence Scoring Phase (inline) ───────────────
     scoring_subtitle: string;
@@ -283,6 +288,10 @@ export interface VernacularDictionary {
     compression_analyzing_hint: string;
     compression_select_title: string;
     compression_merge_header: string;
+    chimera_bond_label: string;
+    chimera_result_subtitle: string;
+    chimera_fused_from: string;
+    chimera_count: string;
 
     // ── Ritual Dashboard ─────────────────────────────
     ritual_reaudit_button: string;
@@ -292,6 +301,108 @@ export interface VernacularDictionary {
 
     // ── Cortex Terminal ──────────────────────────────
     cortex_status: string;
+
+    // ── Signal Triangulation ─────────────────────────
+    triangulation_title: string;
+    triangulation_subtitle: string;
+    triangulation_q1: string;
+    triangulation_q2: string;
+    triangulation_q3: string;
+    triangulation_label_1: string;
+    triangulation_label_2: string;
+    triangulation_label_3: string;
+    triangulation_next: string;
+    triangulation_cta: string;
+    triangulation_synthesizing: string;
+    triangulation_footer: string;
+    triangulation_placeholder: string;
+    triangulation_button: string;
+
+    // ── Candidate Card Labels ────────────────────────
+    primitives_menu: string;
+    deck_of_sparks: string;
+    candidate_function: string;
+    candidate_promise: string;
+    candidate_antipitch: string;
+
+    // ── Tier 1: Citadel Hardening ────────────────────
+    session_vow_title: string;
+    session_vow_operator_label: string;
+    session_vow_directive_label: string;
+    session_vow_define_directive: string;
+    session_vow_placeholder: string;
+    session_vow_confirm: string;
+    session_vow_edit: string;
+    session_vow_initializing: string;
+    session_vow_hold: string;
+
+    resurrection_alert: string;
+    resurrection_inactive_label: string;
+    resurrection_message: string;
+    resurrection_placeholder: string;
+    resurrection_reactivating: string;
+    resurrection_initiate: string;
+    resurrection_protocol_active: string;
+
+    flow_optimal: string;
+    flow_caution: string;
+    flow_breach: string;
+    flow_offline: string;
+
+    decay_cooling: string;
+    decay_stale: string;
+    decay_decaying: string;
+    decay_plan_status: string;
+    decay_last_activity: string;
+
+    // ── Installation Button Tooltips ─────────────────
+    tip_download_pdf: string;
+    tip_export_calendar: string;
+    tip_save: string;
+    tip_finalize: string;
+    tip_finalize_locked: string;
+    tip_fork: string;
+    tip_copy_md: string;
+
+
+    // ── Installation Alerts & Market ─────────────────
+    alert_critical_gap: string;
+    alert_tov_missing: string;
+    alert_run_upgrade: string;
+    market_status_title: string;
+    status_containment: string;
+    status_scalable: string;
+    market_searching: string;
+    market_run_search: string;
+    proof_ledger_title: string;
+    change_tool: string;
+    copy_protocol: string;
+    iterate_protocol: string;
+    consultation_coming_soon: string;
+
+    // Proof Tier
+    tier_label: string;
+    tier_seed: string;
+    tier_draft: string;
+    tier_near_final: string;
+    tier_artifact: string;
+
+    // Momiyose
+    momiyose_title: string;
+    momiyose_subtitle: string;
+    momiyose_seal_button: string;
+    momiyose_sealed_alert: string;
+    momiyose_toggle: string;
+    tip_iterate: string;
+    tip_consultation: string;
+    // Tier 3: Cortex Memory
+    cortex_input_placeholder: string;
+    cortex_thinking: string;
+    cortex_memory_saved: string;
+
+    // Installation → Ritual Dashboard navigation
+    proceed_to_dashboard: string;
+    ritual_dashboard_title: string;
 }
 
 const MYTHIC: VernacularDictionary = {
@@ -535,6 +646,11 @@ const MYTHIC: VernacularDictionary = {
     simulation_placeholder: 'Deploy your tactical response — this is a war room, not a classroom.',
     simulation_exit: 'Disengage',
     simulation_complete: 'Simulation Survived',
+    simulation_fail_msg: 'SIMULATION FAILED — TACTICS INEFFECTIVE',
+    simulation_score_label: 'COMBAT SCORE',
+    simulation_archetype_label: 'ADVERSARY ARCHETYPE',
+    simulation_start_btn: 'ENGAGE SIMULATION',
+    simulation_pass_msg: 'VICTORY — TACTICS VALIDATED',
 
     // Evidence Scoring
     scoring_subtitle: 'Evidence Gates. High claims require high proof.',
@@ -552,12 +668,16 @@ const MYTHIC: VernacularDictionary = {
     compression_result_subtitle: 'The Engine has compressed your skills into commercially viable functions.',
     compression_result_title: 'Market Synthesis',
     compression_proceed: 'Proceed to Evidence →',
-    compression_select_subtitle: 'Select 3 core activities. The AI will synthesize them into market roles.',
+    compression_select_subtitle: 'You are dropped into a divergent reality. These 4 skills are your only survival tools. Select them.',
     compression_cap_warning: '⚠ ARMORY OVERLOADED',
     compression_cap_explainer: 'The 80/20 rule: your top 20% of skills generate 80% of value. Compress or delete until ≤ {cap}.',
-    compression_analyzing_hint: 'Applying 32k context reasoning to niche down...',
-    compression_select_title: 'Skill Selection',
+    compression_analyzing_hint: 'Running Chimera Protocol... fusing survival skills into sovereign function...',
+    compression_select_title: 'Chimera Protocol',
     compression_merge_header: 'Compression Recommendations',
+    chimera_bond_label: 'MOLECULAR BOND',
+    chimera_result_subtitle: 'Chimera Protocol Complete — Alien Logic Synthesized',
+    chimera_fused_from: 'FORGED FROM',
+    chimera_count: '{n} / 4 Survival Skills Armed',
 
     // Ritual Dashboard
     ritual_reaudit_button: 'Re-Run Audit →',
@@ -565,9 +685,108 @@ const MYTHIC: VernacularDictionary = {
     ritual_signal_fidelity: 'Signal Fidelity',
     ritual_multiplier: 'Commitment Multiplier',
     cortex_status: 'SOVEREIGN CORTEX PROCESSING',
+
+    // ── Signal Triangulation ─────────────────────────
+    triangulation_title: 'PLAN CALIBRATION',
+    triangulation_subtitle: 'Signal Triangulation Protocol',
+    triangulation_q1: 'Identify the Signal. What part of this plan feels inevitable?',
+    triangulation_q2: 'Identify the Static. What part of this plan feels like a job, not a tool?',
+    triangulation_q3: 'Name the Block. Why haven\'t you executed this already?',
+    triangulation_label_1: 'SIGNAL 1 — RESONANCE',
+    triangulation_label_2: 'SIGNAL 2 — DISTORTION',
+    triangulation_label_3: 'SIGNAL 3 — FRICTION',
+    triangulation_next: 'NEXT SIGNAL →',
+    triangulation_cta: 'COLLAPSE WAVEFORM',
+    triangulation_synthesizing: 'COLLAPSING WAVEFORM',
+    triangulation_footer: '3 SIGNALS • 1 SOVEREIGN TRAJECTORY',
+    triangulation_placeholder: 'Speak your truth...',
+    triangulation_button: 'CALIBRATE PROTOCOL',
+
+    // Candidate Card Labels
+    primitives_menu: 'Sovereign Primitives (Quick Add)',
+    deck_of_sparks: 'Deck of Sparks',
+    candidate_function: 'Function',
+    candidate_promise: 'The Promise',
+    candidate_antipitch: "ANTIPITCH",
+
+    // ── Tier 1: Citadel Hardening ────────────────────
+    session_vow_title: "SOVEREIGN COMMAND CENTER — SESSION INITIALIZATION",
+    session_vow_operator_label: "OPERATOR",
+    session_vow_directive_label: "SESSION DIRECTIVE",
+    session_vow_define_directive: "DEFINE SESSION DIRECTIVE",
+    session_vow_placeholder: "State your strategic intent for this session...",
+    session_vow_confirm: "✓ CONFIRM DIRECTIVE",
+    session_vow_edit: "[ EDIT ]",
+    session_vow_initializing: "INITIALIZING...",
+    session_vow_hold: "INITIATE SEQUENCE",
+
+    resurrection_alert: "⚠ SYSTEM ALERT",
+    resurrection_inactive_label: "CITADEL INACTIVE FOR {days} DAYS",
+    resurrection_message: "All systems entered deep freeze. Your data is intact.\nState your intent to reactivate the command center.",
+    resurrection_placeholder: "I am returning to...",
+    resurrection_reactivating: "REACTIVATING...",
+    resurrection_initiate: "INITIATE RESURRECTION",
+    resurrection_protocol_active: "DEEP FREEZE PROTOCOL ACTIVE",
+
+    flow_optimal: "OPTIMAL",
+    flow_caution: "CAUTION",
+    flow_breach: "BREACH",
+    flow_offline: "OFFLINE",
+
+    decay_cooling: "COOLING",
+    decay_stale: "STALE",
+    decay_decaying: "DECAYING",
+    decay_plan_status: "⚠ PLAN STATUS",
+    decay_last_activity: "Last activity",
+
+    tip_download_pdf: 'Export your complete Sovereign Dossier as a formatted PDF',
+    tip_export_calendar: 'Downloads a .ICS calendar file with your 7-day ritual protocol',
+    tip_save: 'Saves your dossier state so you can return and refine later',
+    tip_finalize: 'Locks this version permanently as your official dossier',
+    tip_finalize_locked: 'Available in {days} days — refine your protocol first',
+    tip_fork: 'Creates a new editable version from your finalized dossier',
+    tip_copy_md: 'Copies the full protocol to your clipboard in Markdown format',
+    tip_iterate: 'Open the AI Refinement Terminal — your most powerful tool. Tell the AI exactly how to personalize, restructure, or sharpen your protocol.',
+    tip_consultation: 'Coming soon — live consultation session with a strategist',
+    
+    // Installation Alerts & Market
+    alert_critical_gap: 'CRITICAL GAP',
+    alert_tov_missing: 'THEORY OF VALUE NOT DETECTED',
+    alert_run_upgrade: 'RUN FORENSIC UPGRADE',
+    market_status_title: 'MARKET STATUS',
+    status_containment: 'CONTAINMENT REQ',
+    status_scalable: 'SCALABLE ASSET',
+    market_searching: 'SEARCHING GROUNDING...',
+    market_run_search: 'RUN MARKET SEARCH CHECK',
+    proof_ledger_title: 'PROOF LEDGER',
+    change_tool: '← CHANGE TOOL',
+    copy_protocol: '[ COPY PROTOCOL MD ]',
+    iterate_protocol: '★ ITERATE PROTOCOL [ AI REFINEMENT ]',
+    consultation_coming_soon: 'Initialize Live Consultation (Coming Feature)',
+    proceed_to_dashboard: 'Enter the Arena',
+    ritual_dashboard_title: 'Ritual Dashboard',
+
+    // Proof Tier
+    tier_label: 'PROOF TIER',
+    tier_seed: 'SEED',
+    tier_draft: 'FORGING',
+    tier_near_final: 'TEMPERING',
+    tier_artifact: 'ARTIFACT',
+
+    // Momiyose
+    momiyose_title: 'MOMIYOSE — WEEKLY SYNTHESIS',
+    momiyose_subtitle: 'The cycle closes. Assess your impact.',
+    momiyose_seal_button: 'SEAL THE WEEK',
+    momiyose_sealed_alert: 'WEEK SEALED. ENTROPY ARRESTED.',
+    momiyose_toggle: 'WEEKLY REVIEW',
+    // Cortex
+    cortex_input_placeholder: "TRANSMIT QUERY TO CORTEX...",
+    cortex_thinking: "ACCESSING AKASHIC RECORD...",
+    cortex_memory_saved: "THOUGHT SIGNATURE CRYSTALLIZED.",
 };
 
 const INDUSTRIAL: VernacularDictionary = {
+    // ── Phases ──────────────────────────────────────
     phase_armory: 'Asset Inventory',
     phase_scoring: 'Performance Audit',
     phase_lock: 'Selection Report',
@@ -656,9 +875,118 @@ const INDUSTRIAL: VernacularDictionary = {
     synthesis_build_cta_prefix: 'BUILD',
     synthesis_forging: '[ BUILDING VALUE PROPOSITION... ]',
     synthesis_back: 'BACK TO PREVIOUS STEP',
+    
+    // Candidate Card Labels
+    primitives_menu: 'Sovereign Primitives (Quick Add)',
+    deck_of_sparks: 'Deck of Sparks',
+    candidate_function: 'Function',
+    candidate_promise: 'The Promise',
+    candidate_antipitch: "RISK FACTOR",
+
+    // ── Tier 1: Citadel Hardening ────────────────────
+    session_vow_title: "SYSTEM INITIALIZATION",
+    session_vow_operator_label: "USER",
+    session_vow_directive_label: "SESSION OBJECTIVE",
+    session_vow_define_directive: "DEFINE OBJECTIVE",
+    session_vow_placeholder: "Define your goal for this session...",
+    session_vow_confirm: "✓ CONFIRM GOAL",
+    session_vow_edit: "[ EDIT ]",
+    session_vow_initializing: "LOADING...",
+    session_vow_hold: "START SESSION",
+
+    resurrection_alert: "⚠ INACTIVITY ALERT",
+    resurrection_inactive_label: "SYSTEM INACTIVE FOR {days} DAYS",
+    resurrection_message: "Session expired due to inactivity. Data archiving active.\nConfirm intent to restore session.",
+    resurrection_placeholder: "Reason for return...",
+    resurrection_reactivating: "RESTORING...",
+    resurrection_initiate: "RESTORE SESSION",
+    resurrection_protocol_active: "ARCHIVE PROTOCOL ACTIVE",
+
+    flow_optimal: "FLOW",
+    flow_caution: "HIGH LOAD",
+    flow_breach: "OVERLOAD",
+    flow_offline: "IDLE",
+
+    decay_cooling: "RECENT",
+    decay_stale: "OLD",
+    decay_decaying: "EXPIRED",
+    decay_plan_status: "⚠ PLAN AGE",
+    decay_last_activity: "Modified",
+
+    tip_download_pdf: 'Export your complete Sovereign Dossier as a formatted PDF',
+    tip_export_calendar: 'Downloads a .ICS calendar file with your 7-day ritual protocol',
+    tip_save: 'Saves your dossier state so you can return and refine later',
+    tip_finalize: 'Locks this version permanently as your official dossier',
+    tip_finalize_locked: 'Available in {days} days — refine your protocol first',
+    tip_fork: 'Creates a new editable version from your finalized dossier',
+    tip_copy_md: 'Copies the full protocol to your clipboard in Markdown format',
+    tip_iterate: 'Open the AI Refinement Terminal — your most powerful tool. Tell the AI exactly how to personalize, restructure, or sharpen your protocol.',
+    tip_consultation: 'Coming soon — live consultation session with a strategist',
 
     // Installation
     dossier_badge_sovereign: 'PRIMARY ASSET REPORT',
+
+    simulation_title: 'PRACTICE SIMULATION',
+    simulation_placeholder: 'Write your response using specific details from your experience.',
+    simulation_exit: 'Exit',
+    simulation_complete: 'Simulation Complete',
+    simulation_fail_msg: 'SIMULATION FAILED — CRITERIA NOT MET',
+    simulation_score_label: 'PERFORMANCE SCORE',
+    simulation_archetype_label: 'SCENARIO ARCHETYPE',
+    simulation_start_btn: 'START SIMULATION',
+    simulation_pass_msg: 'PASSED — CRITERIA MET',
+
+    // Evidence Scoring
+    scoring_subtitle: 'Score each asset against performance benchmarks.',
+    scoring_challenging: '⚡ Validating claim against benchmark...',
+    scoring_proof_unbidden: 'Evidence Required — Paste Inbound Communications',
+    scoring_proof_result: 'Evidence Required — Paste Case Study or Metric',
+    scoring_risk_explanation: 'HIGH = Revenue requires your presence. LOW = Revenue persists without you.',
+    scoring_proceed: 'Audit Complete → Select Asset',
+
+    // Tool Compression
+    compression_sovereign_badge: 'PRIMARY ASSET',
+    compression_sovereign_synthesizing: 'Consolidating Assets...',
+    compression_sovereign_button: 'Consolidate into Primary Asset',
+    compression_compress_button: 'Analyze Market Position',
+    compression_result_subtitle: 'Your skills have been mapped to commercially viable professional functions.',
+    compression_result_title: 'Market Analysis',
+    compression_proceed: 'Proceed to Validation →',
+    compression_select_subtitle: 'Select 4 key competencies. The system will synthesize them into a compound market function.',
+    compression_cap_warning: '⚠ INVENTORY OVERLOADED',
+    compression_cap_explainer: 'The Pareto principle: 20% of your competencies generate 80% of value. Consolidate until ≤ {cap}.',
+    compression_analyzing_hint: 'Synthesizing compound function from core competencies...',
+    compression_select_title: 'Compound Function Synthesis',
+    compression_merge_header: 'Consolidation Recommendations',
+    chimera_bond_label: 'COMPOUND LOGIC',
+    chimera_result_subtitle: 'Compound Function Synthesized',
+    chimera_fused_from: 'COMPOSED OF',
+    chimera_count: '{n} / 4 Competencies Selected',
+
+    // Ritual Dashboard
+    ritual_reaudit_button: 'Re-Run Assessment →',
+    ritual_streak: 'Active Streak',
+    ritual_signal_fidelity: 'Signal Fidelity',
+    ritual_multiplier: 'Streak Multiplier',
+    cortex_status: 'ENGINE PROCESSING',
+
+    // ── Signal Triangulation ─────────────────────────
+    triangulation_title: 'PLAN CALIBRATION',
+    triangulation_subtitle: 'Signal Triangulation Sequence',
+    triangulation_q1: 'Confirm alignment. What part of this plan resonates?',
+    triangulation_q2: 'Flag resistance. What part doesn\'t fit your operation?',
+    triangulation_q3: 'Locate friction. What\'s the barrier to immediate execution?',
+    triangulation_label_1: 'INPUT 1 — ALIGNMENT',
+    triangulation_label_2: 'INPUT 2 — RESISTANCE',
+    triangulation_label_3: 'INPUT 3 — BARRIER',
+    triangulation_next: 'NEXT INPUT →',
+    triangulation_cta: 'SYNTHESIZE PROTOCOL',
+    triangulation_synthesizing: 'SYNTHESIZING PROTOCOL',
+    triangulation_footer: '3 INPUTS • 1 REFINED PROTOCOL',
+    triangulation_placeholder: 'Enter your feedback...',
+    triangulation_button: 'CALIBRATE PLAN',
+
+    // Installation
     dossier_badge_official: 'ASSET REPORT',
     tov_summary_label: 'Value Proposition Summary',
     tov_promise_label: 'Core Transformation Promise',
@@ -682,7 +1010,7 @@ const INDUSTRIAL: VernacularDictionary = {
     archive_subject_label: 'Analyst',
     archive_footer: 'TetraTool // Strategic Operations',
 
-    // Ritual Dashboard
+    // Ritual Dashboard (Remainder)
     ritual_subtitle: 'Daily KPI tracking. Numbers don\'t lie.',
     ritual_active_weapon: 'Primary Asset',
     ritual_offer_label: 'Premium Offer',
@@ -803,41 +1131,44 @@ const INDUSTRIAL: VernacularDictionary = {
     xp_interrogation: 'Knowledge check passed — application verified',
     scaffold_title: 'PHASE OVERVIEW',
     scaffold_success_signal: 'SUCCESS CRITERIA',
-    scaffold_proceed: 'Got it. Proceed.',
-    simulation_title: 'PRACTICE SIMULATION',
-    simulation_placeholder: 'Write your response using specific details from your experience.',
-    simulation_exit: 'Exit',
-    simulation_complete: 'Simulation Complete',
+    scaffold_proceed: 'Got it.',
 
-    // Evidence Scoring
-    scoring_subtitle: 'Score each asset against performance benchmarks.',
-    scoring_challenging: '⚡ Validating claim against benchmark...',
-    scoring_proof_unbidden: 'Evidence Required — Paste Inbound Communications',
-    scoring_proof_result: 'Evidence Required — Paste Case Study or Metric',
-    scoring_risk_explanation: 'HIGH = Revenue requires your presence. LOW = Revenue persists without you.',
-    scoring_proceed: 'Audit Complete → Select Asset',
 
-    // Tool Compression
-    compression_sovereign_badge: 'PRIMARY ASSET',
-    compression_sovereign_synthesizing: 'Consolidating Assets...',
-    compression_sovereign_button: 'Consolidate into Primary Asset',
-    compression_compress_button: 'Analyze Market Position',
-    compression_result_subtitle: 'Your skills have been mapped to commercially viable professional functions.',
-    compression_result_title: 'Market Analysis',
-    compression_proceed: 'Proceed to Validation →',
-    compression_select_subtitle: 'Select 3 key competencies. The system will map them to market functions.',
-    compression_cap_warning: '⚠ INVENTORY OVERLOADED',
-    compression_cap_explainer: 'The Pareto principle: 20% of your competencies generate 80% of value. Consolidate until ≤ {cap}.',
-    compression_analyzing_hint: 'Evaluating market positioning vectors...',
-    compression_select_title: 'Competency Selection',
-    compression_merge_header: 'Consolidation Recommendations',
 
-    // Ritual Dashboard
-    ritual_reaudit_button: 'Re-Run Assessment →',
-    ritual_streak: 'Active Streak',
-    ritual_signal_fidelity: 'Signal Fidelity',
-    ritual_multiplier: 'Streak Multiplier',
-    cortex_status: 'ENGINE PROCESSING',
+    // Installation Alerts & Market
+    alert_critical_gap: 'CRITICAL GAP',
+    alert_tov_missing: 'THEORY OF VALUE NOT DETECTED',
+    alert_run_upgrade: 'RUN FORENSIC UPGRADE',
+    market_status_title: 'MARKET STATUS',
+    status_containment: 'CONTAINMENT REQ',
+    status_scalable: 'SCALABLE ASSET',
+    market_searching: 'SEARCHING GROUNDING...',
+    market_run_search: 'RUN MARKET SEARCH CHECK',
+    proof_ledger_title: 'PROOF LEDGER',
+    change_tool: '← CHANGE TOOL',
+    copy_protocol: '[ COPY PROTOCOL MD ]',
+    iterate_protocol: '★ ITERATE PROTOCOL [ AI REFINEMENT ]',
+    consultation_coming_soon: 'Initialize Live Consultation (Coming Feature)',
+    proceed_to_dashboard: 'Open Operations Dashboard',
+    ritual_dashboard_title: 'Operations Dashboard',
+
+    // Proof Tier
+    tier_label: 'PROOF LEVEL',
+    tier_seed: 'INITIATION',
+    tier_draft: 'DEVELOPMENT',
+    tier_near_final: 'VALIDATION',
+    tier_artifact: 'DEPLOYED',
+
+    // Momiyose
+    momiyose_title: 'WEEKLY PERFORMANCE REVIEW',
+    momiyose_subtitle: 'Aggregate data analysis.',
+    momiyose_seal_button: 'FINALIZE REPORT',
+    momiyose_sealed_alert: 'REPORT FILED.',
+    momiyose_toggle: 'WEEKLY REPORT',
+    // Cortex
+    cortex_input_placeholder: "Enter query for System Core...",
+    cortex_thinking: "PROCESSING REQUEST...",
+    cortex_memory_saved: "DATA COMMITTED TO LOG.",
 };
 
 const PLAIN: VernacularDictionary = {
@@ -1081,6 +1412,11 @@ const PLAIN: VernacularDictionary = {
     simulation_placeholder: 'Share your response here...',
     simulation_exit: 'Exit',
     simulation_complete: 'Nice work!',
+    simulation_fail_msg: 'Try Again',
+    simulation_score_label: 'Score',
+    simulation_archetype_label: 'Situation',
+    simulation_start_btn: 'Start Practice',
+    simulation_pass_msg: 'You Did It!',
 
     // Evidence Scoring
     scoring_subtitle: 'Rate how strong each skill really is. Be honest.',
@@ -1098,12 +1434,16 @@ const PLAIN: VernacularDictionary = {
     compression_result_subtitle: 'We turned your skills into roles you can sell.',
     compression_result_title: 'Your Skills',
     compression_proceed: 'Next Step →',
-    compression_select_subtitle: 'Choose 3 things you do best. We will figure out how to sell them.',
+    compression_select_subtitle: 'Choose 4 things you do best. We will figure out how they combine into one unique skill.',
     compression_cap_warning: '⚠ TOO MANY SKILLS',
     compression_cap_explainer: 'Focus on the 20% of skills that create 80% of your value. Remove or merge until you have {cap} or fewer.',
-    compression_analyzing_hint: 'Finding the best way to package your skills...',
-    compression_select_title: 'Pick Your Top Skills',
+    compression_analyzing_hint: 'Finding the best way to combine your skills...',
+    compression_select_title: 'Combine Your Skills',
     compression_merge_header: 'Suggested Combinations',
+    chimera_bond_label: 'WHY THEY WORK TOGETHER',
+    chimera_result_subtitle: 'Your Combined Skill — Ready to Sell',
+    chimera_fused_from: 'MADE FROM',
+    chimera_count: '{n} / 4 Skills Selected',
 
     // Ritual Dashboard
     ritual_reaudit_button: 'Re-Run Audit →',
@@ -1111,6 +1451,105 @@ const PLAIN: VernacularDictionary = {
     ritual_signal_fidelity: 'Progress Score',
     ritual_multiplier: 'Bonus Multiplier',
     cortex_status: 'PROCESSING',
+
+    // ── Signal Triangulation ─────────────────────────
+    triangulation_title: 'REFINE YOUR PLAN',
+    triangulation_subtitle: '3 Quick Questions',
+    triangulation_q1: 'What do you like about this plan?',
+    triangulation_q2: 'What would you change?',
+    triangulation_q3: 'What\'s stopping you from starting right now?',
+    triangulation_label_1: 'QUESTION 1',
+    triangulation_label_2: 'QUESTION 2',
+    triangulation_label_3: 'QUESTION 3',
+    triangulation_next: 'NEXT →',
+    triangulation_cta: 'REFINE MY PLAN',
+    triangulation_synthesizing: 'UPDATING YOUR PLAN',
+    triangulation_footer: '3 ANSWERS • 1 BETTER PLAN',
+    triangulation_placeholder: 'Type your answer...',
+    triangulation_button: 'REFINE PLAN',
+
+    // Candidate Card Labels
+    primitives_menu: 'Suggested Skills (Quick Add)',
+    deck_of_sparks: 'AI Suggestions',
+    candidate_function: 'What You Do',
+    candidate_promise: 'The Outcome',
+    candidate_antipitch: "What This Isn\'t",
+
+    // ── Tier 1: Citadel Hardening ────────────────────
+    session_vow_title: "START NEW SESSION",
+    session_vow_operator_label: "YOUR NAME",
+    session_vow_directive_label: "WHAT'S YOUR GOAL?",
+    session_vow_define_directive: "SET YOUR GOAL",
+    session_vow_placeholder: "What do you want to achieve in this session?",
+    session_vow_confirm: "✓ CONFIRM GOAL",
+    session_vow_edit: "[ EDIT ]",
+    session_vow_initializing: "STARTING...",
+    session_vow_hold: "START",
+
+    resurrection_alert: "⚠ HEY THERE!",
+    resurrection_inactive_label: "YOU'VE BEEN AWAY FOR {days} DAYS",
+    resurrection_message: "Your last session ended. All your data is safe.\nTell us what you're working on to get back in.",
+    resurrection_placeholder: "I'm back to work on...",
+    resurrection_reactivating: "GETTING READY...",
+    resurrection_initiate: "GET STARTED",
+    resurrection_protocol_active: "SESSION PAUSED",
+
+    flow_optimal: "GOOD FLOW",
+    flow_caution: "BUSY",
+    flow_breach: "TOO MUCH",
+    flow_offline: "OFF",
+
+    decay_cooling: "NEW",
+    decay_stale: "OLD",
+    decay_decaying: "VERY OLD",
+    decay_plan_status: "⚠ PLAN AGE",
+    decay_last_activity: "Last changed",
+
+    tip_download_pdf: 'Save your plan as a PDF you can print or share',
+    tip_export_calendar: 'Add your 7-day plan to Google Calendar, Outlook, or Apple Calendar',
+    tip_save: 'Save your progress so you can come back and edit later',
+    tip_finalize: 'Lock this version — marks your plan as complete',
+    tip_finalize_locked: 'Available in {days} days — keep working on your plan.',
+    tip_fork: 'Make a new copy of your plan that you can edit freely',
+    tip_copy_md: 'Copy your plan text to the clipboard',
+    tip_iterate: 'Open the AI editor — tell the AI exactly what to change, add, or remove from your plan. This is the best way to make it yours.',
+    tip_consultation: 'Coming soon — talk to an expert for hands-on help',
+
+    // Installation Alerts & Market
+    alert_critical_gap: 'Missing Info',
+    alert_tov_missing: 'Value Strategy Missing',
+    alert_run_upgrade: 'Fix It',
+    market_status_title: 'Is It Good?',
+    status_containment: 'Too Risky',
+    status_scalable: 'Good to Go',
+    market_searching: 'Checking...',
+    market_run_search: 'Check Market',
+    proof_ledger_title: 'Evidence',
+    change_tool: '← Back',
+    copy_protocol: 'Copy Plan',
+    iterate_protocol: 'Improve with AI',
+    consultation_coming_soon: 'Talk to an Expert (Soon)',
+    proceed_to_dashboard: 'Go to Your Dashboard',
+    ritual_dashboard_title: 'Your Dashboard',
+
+    // Proof Tier
+    tier_label: 'Status',
+    tier_seed: 'Just Started',
+    tier_draft: 'Drafting',
+    tier_near_final: 'Polishing',
+    tier_artifact: 'Complete',
+
+    // Momiyose
+    momiyose_title: 'Weekly Review',
+    momiyose_subtitle: 'Check your progress.',
+    momiyose_seal_button: 'Finish Week',
+    momiyose_sealed_alert: 'Week saved.',
+    momiyose_toggle: 'Review Week',
+
+    // Cortex
+    cortex_input_placeholder: "Ask the AI...",
+    cortex_thinking: "Thinking...",
+    cortex_memory_saved: "Memory saved.",
 };
 
 const DICTIONARIES: Record<VernacularMode, VernacularDictionary> = {
@@ -1159,6 +1598,19 @@ export const VernacularProvider: React.FC<{ children: ReactNode }> = ({ children
 };
 
 export const useVernacular = () => useContext(VernacularContext);
+
+// ── Quadrant Label Helper ─────────────────────────────────
+// Maps raw Quadrant enum values ('Ritual', 'Craft', etc.)
+// to mode-aware display labels via the active dictionary.
+export function quadrantLabel(q: string, v: VernacularDictionary): string {
+    const map: Record<string, string> = {
+        Sandbox: v.quadrant_sandbox,
+        Mischief: v.quadrant_mischief,
+        Craft: v.quadrant_craft,
+        Ritual: v.quadrant_ritual,
+    };
+    return map[q] || q;
+}
 
 // ── Convenience Toggle Component ──────────────────────────
 

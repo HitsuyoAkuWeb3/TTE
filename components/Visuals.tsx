@@ -221,6 +221,7 @@ export const BurnButton: React.FC<{ onBurn: () => void, className?: string }> = 
 
   const startBurn = () => {
     if (intervalRef.current) return;
+    const isTestMode = typeof window !== 'undefined' && window.location.search.includes('test_user=true');
     intervalRef.current = setInterval(() => {
       setProgress(p => {
         if (p >= 100) {
@@ -228,7 +229,7 @@ export const BurnButton: React.FC<{ onBurn: () => void, className?: string }> = 
           onBurn();
           return 100;
         }
-        return p + 4; // ~1.5s to fill (25 frames * 60ms)
+        return p + (isTestMode ? 100 : 4); // Instant fill in test mode
       });
     }, 60);
   };

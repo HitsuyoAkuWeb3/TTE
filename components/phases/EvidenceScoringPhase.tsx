@@ -147,57 +147,44 @@ const ChallengerModal: React.FC<{
 // ============================================================
 // EVIDENCE SCORING PHASE — The Crucible
 // ============================================================
+// ============================================================
+// EVIDENCE SCORING PHASE — The Crucible (Flux Fusion Edition)
+// ============================================================
 export const EvidenceScoringPhase: React.FC<{
     candidates: ToolCandidate[],
     onUpdateCandidate: (candidates: ToolCandidate[]) => void,
     onNext: () => void,
     onBack: () => void
 }> = ({ candidates, onUpdateCandidate, onNext, onBack }) => {
-    const [activeIndex, setActiveIndex] = useState(0);
+    // With Flux Fusion, there is only ever 1 candidate.
+    const activeCandidate = candidates[0];
     const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
     const [challengeContext, setChallengeContext] = useState<{ key: string; dimension: string } | null>(null);
     const [isChallengingScore, setIsChallengingScore] = useState(false);
     const { v } = useVernacular();
 
-    const activeCandidate = candidates[activeIndex];
-
     const updateScore = useCallback((key: keyof ToolCandidate['scores'], val: number) => {
-        const updated = candidates.map((c, i) => {
-            if (i === activeIndex) {
-                return {
-                    ...c,
-                    scores: { ...c.scores, [key]: val }
-                };
-            }
-            return c;
-        });
+        const updated = [{
+            ...activeCandidate,
+            scores: { ...activeCandidate.scores, [key]: val }
+        }];
         onUpdateCandidate(updated);
-    }, [candidates, activeIndex, onUpdateCandidate]);
+    }, [activeCandidate, onUpdateCandidate]);
 
     const updateProof = (key: keyof ToolCandidate['proofs'], val: string) => {
-        const updated = candidates.map((c, i) => {
-            if (i === activeIndex) {
-                return {
-                    ...c,
-                    proofs: { ...c.proofs, [key]: val }
-                };
-            }
-            return c;
-        });
+        const updated = [{
+            ...activeCandidate,
+            proofs: { ...activeCandidate.proofs, [key]: val }
+        }];
         onUpdateCandidate(updated);
     };
 
     const markChallengeReceived = () => {
-        const updated = candidates.map((c, i) => {
-            if (i === activeIndex) {
-                return { ...c, challengeReceived: true };
-            }
-            return c;
-        });
+        const updated = [{ ...activeCandidate, challengeReceived: true }];
         onUpdateCandidate(updated);
     };
 
-    // Adversarial trigger: fires on first high score without evidence, once per candidate
+    // Adversarial trigger: NOW ONLY FIRES ON 5/5 (PERFECTION CLAIM)
     const handleScoreChange = useCallback(async (
         key: keyof ToolCandidate['scores'],
         dimension: string,
@@ -206,9 +193,10 @@ export const EvidenceScoringPhase: React.FC<{
     ) => {
         updateScore(key, val);
 
-        // Only challenge once per candidate, only on high scores with no evidence
+        // Only challenge on 5/5 (Perfection), if no evidence yet, and never before challenged.
+        // Relaxed from previous >= 4 requirement.
         const evidence = evidenceKey ? activeCandidate.proofs[evidenceKey] : undefined;
-        const shouldChallenge = val >= 4
+        const shouldChallenge = val === 5
             && (!evidence || evidence.length < 10)
             && !activeCandidate.challengeReceived;
 
@@ -244,36 +232,36 @@ export const EvidenceScoringPhase: React.FC<{
         setChallengeContext(null);
     };
 
-    // Forensic stamp for individual candidate
-    const getCandidateVerdict = (c: ToolCandidate): { verified: boolean; avgScore: number } => {
-        const scores = [c.scores.unbiddenRequests, c.scores.frictionlessDoing, c.scores.resultEvidence];
+    // Forensic stamp
+    const verdict = (() => {
+        const scores = [activeCandidate.scores.unbiddenRequests, activeCandidate.scores.frictionlessDoing, activeCandidate.scores.resultEvidence];
         const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-        return { verified: avgScore >= MIN_EVIDENCE_SCORE, avgScore: Math.round(avgScore * 10) / 10 };
-    };
+        // Relaxed Gate: 2.0+ is acceptable for partial verification, 3.0+ for full.
+        // We allow 2.0 to proceed to reduce friction.
+        return { verified: avgScore >= 2, avgScore: Math.round(avgScore * 10) / 10 };
+    })();
 
     const getValidationStatus = () => {
-        for (const c of candidates) {
-            const hasHighUnbidden = c.scores.unbiddenRequests >= 3;
-            const hasUnbiddenProof = !!c.proofs.unbidden && c.proofs.unbidden.length > 0;
+        // Gates:
+        // 1. If score >= 3 on evidence-based dimensions, MUST have text input.
+        // 2. Avg score must be >= 2.0 (Relaxed from 3.0)
 
-            const hasHighResult = c.scores.resultEvidence >= 3;
-            const hasResultProof = !!c.proofs.result && c.proofs.result.length > 0;
+        const c = activeCandidate;
+        const hasHighUnbidden = c.scores.unbiddenRequests >= 3;
+        const hasUnbiddenProof = !!c.proofs.unbidden && c.proofs.unbidden.length > 0;
 
-            if (hasHighUnbidden && !hasUnbiddenProof) {
-                return { valid: false, reason: `Missing Evidence: Unbidden Requests for ${c.plainName} (scored ${c.scores.unbiddenRequests}/5)` };
-            }
-            if (hasHighResult && !hasResultProof) {
-                return { valid: false, reason: `Missing Evidence: Results for ${c.plainName} (scored ${c.scores.resultEvidence}/5)` };
-            }
+        const hasHighResult = c.scores.resultEvidence >= 3;
+        const hasResultProof = !!c.proofs.result && c.proofs.result.length > 0;
+
+        if (hasHighUnbidden && !hasUnbiddenProof) {
+            return { valid: false, reason: `Proof required for Inbound Demand (Score: ${c.scores.unbiddenRequests})` };
+        }
+        if (hasHighResult && !hasResultProof) {
+            return { valid: false, reason: `Proof required for Results (Score: ${c.scores.resultEvidence})` };
         }
 
-        // Ludic Determinism gate: all candidates must be VERIFIED
-        const unverified = candidates.filter(c => !getCandidateVerdict(c).verified);
-        if (unverified.length > 0) {
-            return {
-                valid: false,
-                reason: `[ INSUFFICIENT EVIDENCE ] ${unverified.map(c => c.plainName).join(', ')} — avg score below ${MIN_EVIDENCE_SCORE}/5. Signal unverified.`
-            };
+        if (verdict.avgScore < 2) {
+            return { valid: false, reason: `Insufficient Value: Average score must be at least 2.0 (Current: ${verdict.avgScore})` };
         }
 
         return { valid: true };
@@ -306,29 +294,30 @@ export const EvidenceScoringPhase: React.FC<{
                 />
             )}
 
-            {/* Candidate Tabs with Forensic Stamps */}
-            <div className="flex gap-2 mb-8 border-b border-zinc-800 overflow-x-auto">
-                {candidates.map((c, i) => {
-                    const verdict = getCandidateVerdict(c);
-                    return (
-                        <button
-                            key={c.id}
-                            onClick={() => setActiveIndex(i)}
-                            className={getTabClassName(i === activeIndex, c.isSovereign)}
-                        >
-                            <span className="flex items-center gap-2">
-                                {c.plainName}
-                                {(c.scores.unbiddenRequests + c.scores.frictionlessDoing + c.scores.resultEvidence) > 0 && (
-                                    <span className={`text-[8px] uppercase tracking-widest font-bold ${
-                                        verdict.verified ? 'text-spirit' : 'text-hazard'
-                                    }`}>
-                                        {verdict.verified ? '[ VERIFIED ]' : '[ UNVERIFIED ]'}
-                                    </span>
-                                )}
+            {/* Candidate Header (No Tabs - Single Sovereign) */}
+            <div className="mb-8 border-b border-zinc-800 pb-4">
+                 <h2 className="text-2xl font-display font-black text-white uppercase">{activeCandidate.plainName}</h2>
+                 
+                 {/* Constituents Badge */}
+                 {activeCandidate.constituents && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-wide self-center mr-2">Fused From:</span>
+                        {activeCandidate.constituents.map((c, i) => (
+                             <span key={i} className="text-[10px] font-mono text-emerald-500/80 bg-emerald-900/10 border border-emerald-900/30 px-2 py-0.5">
+                                {c.name}
                             </span>
-                        </button>
-                    );
-                })}
+                        ))}
+                    </div>
+                 )}
+                 
+                 <div className="mt-4 flex items-center justify-between">
+                    <span className="font-mono text-zinc-400 text-sm">{activeCandidate.functionStatement}</span>
+                    <span className={`text-xs font-bold font-mono tracking-widest px-3 py-1 border ${
+                        verdict.verified ? 'text-spirit border-spirit/30 bg-spirit/5' : 'text-zinc-500 border-zinc-700'
+                    }`}>
+                        {verdict.verified ? 'VERIFIED' : 'PENDING'}
+                    </span>
+                 </div>
             </div>
 
             {/* Challenging indicator */}

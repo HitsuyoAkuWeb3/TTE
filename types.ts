@@ -46,6 +46,8 @@ export interface ToolCandidate {
     result?: string;
   };
   challengeReceived?: boolean; // Prevents repeated adversarial prompts
+  constituents?: { name: string; function: string; }[]; // The original tools that formed this Sovereign Authority
+  chimeraBond?: string; // The "molecular bond" — why these skills fuse into something greater
 }
 
 // Verification Level: measures "Proof of Work" integrity
@@ -102,6 +104,39 @@ export interface SignalFidelityResult {
     fidelityScore: number; // 0–100
 }
 
+// ── Tier 3: Memory Cylinder ──────────────────────────────
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  metadata?: {
+    phase?: Phase;
+    toolId?: string;
+    contextHash?: string;
+  };
+}
+
+export interface CortexMemory {
+  id: string;
+  type: 'concept' | 'rule' | 'preference';
+  content: string;
+  strength: number; // 0-1, decays over time
+  lastAccessed: number;
+}
+
+// ── Tier 5: World Forge ──────────────────────────────────
+export interface SimulationResult {
+  id: string;
+  timestamp: number;
+  archetypeId: string; // e.g., 'skeptic', 'helper'
+  toolId: string;
+  score: number; // 0-100
+  passed: boolean; // score >= 70
+  transcript: { speaker: 'user' | 'ai'; text: string }[];
+  feedback?: string;
+}
+
 export interface SystemState {
   id?: string;
   userId: string | null;
@@ -117,12 +152,20 @@ export interface SystemState {
   finalized?: boolean;
   version?: number;
   finalizedAt?: number;
+  planCreatedAt?: number; // Timestamp when pilot plan was first generated (7-day finalization gate)
   // Gamification
   xp: number;
   burnCount: number;
+  // World Forge
+  simulationHistory?: SimulationResult[];
   // Signal Fidelity Degradation
   lastActiveDate?: string; // ISO date string
   accessDegraded?: boolean;
+  // Session Intent
+  sessionGoal?: string; // The Vow — operator's strategic directive for the session
+  // Tier 3: Cortex Memory
+  chatHistory: ChatMessage[];
+  shortTermMemory: CortexMemory[];
 }
 
 // Append-only snapshot for version history
@@ -153,4 +196,7 @@ export const INITIAL_STATE: SystemState = {
   burnCount: 0,
   lastActiveDate: new Date().toISOString(),
   accessDegraded: false,
+  chatHistory: [],
+  shortTermMemory: [],
+  simulationHistory: [],
 };

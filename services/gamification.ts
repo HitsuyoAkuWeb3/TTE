@@ -38,6 +38,7 @@ export const XP_AWARDS = {
     INTERROGATION_PASSED: 40,
     INTERROGATION_PERFECT: 100,
     SIMULATION_PASSED: 60,
+    SIMULATION_EFFORT: 10,
 } as const;
 
 /** Get rank for a given XP total */

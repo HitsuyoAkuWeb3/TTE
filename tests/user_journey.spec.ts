@@ -66,12 +66,12 @@ test.describe('Full User Journey', () => {
         await page.reload();
         
         // 2. Calibration Phase
-        // Wait for calibration form — title varies by vernacular mode
-        await expect(page.locator('textarea')).toBeVisible({ timeout: 10000 });
+        // Use stable `id` selectors — placeholders vary by vernacular mode
+        await expect(page.locator('#calibration-name')).toBeVisible({ timeout: 10000 });
 
-        await page.fill('input[placeholder="e.g., ARCHITECT 01"]', 'Test Operator');
-        await page.fill('input[placeholder="e.g., Enterprise Software / BioTech"]', 'E2E Testing');
-        await page.locator('textarea').fill('To verify system integrity.');
+        await page.fill('#calibration-name', 'Test Operator');
+        await page.fill('#calibration-industry', 'E2E Testing');
+        await page.fill('#calibration-goal', 'To verify system integrity.');
         
         // Select Tone
         await page.getByRole('button', { name: /clinical/i }).click();
@@ -79,14 +79,24 @@ test.describe('Full User Journey', () => {
         // Submit — button text varies: "Finalize Calibration" (mythic) / "Save & Continue" (plain)
         await page.getByRole('button', { name: /Finalize|Save/i }).click();
 
-        // 3. Intro Phase — look for the client name input
-        await expect(page.locator('input[placeholder="Enter Client/Entity Name"]')).toBeVisible({ timeout: 10000 });
-        await page.locator('input[placeholder="Enter Client/Entity Name"]').fill('Test Client');
+        // 3. Intro Phase — use stable id selector
+        await expect(page.locator('#intro-name')).toBeVisible({ timeout: 10000 });
+        await page.fill('#intro-name', 'Test Client');
         // Click start — "Initialize System" (mythic) / "Let's Go" (plain)  
         await page.getByRole('button', { name: /Initialize|Let.*Go/i }).click();
 
         // 4. Armory Audit Phase — look for the heading containing "1"  
         await expect(page.getByRole('heading', { name: /1/i }).first()).toBeVisible({ timeout: 10000 });
+
+        // Dismiss Phase Scaffold briefing modal (if present)
+        const armoryScaffoldDismiss = page.getByRole('button', { name: /Acknowledged|Begin|Got it|Ready/i });
+        try {
+            await armoryScaffoldDismiss.waitFor({ state: 'visible', timeout: 5000 });
+            await armoryScaffoldDismiss.click();
+            await expect(armoryScaffoldDismiss).not.toBeVisible();
+        } catch (e) {
+            console.log('Armory Phase: Briefing modal did not appear, proceeding.');
+        }
         
         // Add 3 Items (Required for Next)
         const addInput = page.locator('input[placeholder*="Edit copy"]');
@@ -106,6 +116,16 @@ test.describe('Full User Journey', () => {
         await armoryProceed.click();
 
         // 5. Tool Compression Phase — Selection view
+        // Dismiss Phase Scaffold if present
+        const compressionScaffold = page.getByRole('button', { name: /Acknowledged|Begin|Got it|Ready/i });
+        try {
+            await compressionScaffold.waitFor({ state: 'visible', timeout: 5000 });
+            await compressionScaffold.click();
+            await expect(compressionScaffold).not.toBeVisible();
+        } catch (_e) {
+            console.log('Compression Phase: Briefing modal did not appear, proceeding.');
+        }
+
         // Wait for selection UI to appear (look for "Selected" counter)
         await expect(page.getByText(/Selected/i)).toBeVisible({ timeout: 10000 });
 
@@ -117,15 +137,33 @@ test.describe('Full User Journey', () => {
         // Click Compress — "Compress into Market Function" (mythic) / "Analyze My Top Skills" (plain)
         await page.getByRole('button', { name: /Compress|Analyze/i }).click();
 
-        // Wait for candidates to render
-        await expect(page.getByText(/Candidate 01/i)).toBeVisible({ timeout: 15000 });
+        // Wait for sovereign candidate to render (Flux Fusion always produces 1 sovereign)
+        // Badge text varies: "SOVEREIGN AUTHORITY" (mythic) / "PRIMARY ASSET" (industrial) / "YOUR TOP SKILL" (plain)
+        await expect(page.getByText(/SOVEREIGN AUTHORITY|PRIMARY ASSET|YOUR TOP SKILL/i)).toBeVisible({ timeout: 15000 });
 
         // Click Proceed — "Proceed to Evidence →" (mythic) / "Next Step →" (plain)
         await page.getByRole('button', { name: /Proceed to Evidence|Next Step/i }).click();
 
         // 6. Evidence Scoring Phase
+        // Dismiss Phase Scaffold if present
+        const evidenceScaffold = page.getByRole('button', { name: /Acknowledged|Begin|Got it|Ready/i });
+        try {
+            await evidenceScaffold.waitFor({ state: 'visible', timeout: 5000 });
+            await evidenceScaffold.click();
+            await expect(evidenceScaffold).not.toBeVisible();
+        } catch (_e) {
+            console.log('Evidence Phase: Briefing modal did not appear, proceeding.');
+        }
+
+        // Score each evidence dimension at 2 (minimum avg ≥ 2.0 required, scores < 3 skip proof requirement)
+        const score2Buttons = page.getByRole('button', { name: 'Score 2' });
+        await score2Buttons.first().waitFor({ state: 'visible', timeout: 5000 });
+        // Click "Score 2" for dimensions 1, 2, 3 (Unbidden, Frictionless, Result)
+        await score2Buttons.nth(0).click();
+        await score2Buttons.nth(1).click();
+        await score2Buttons.nth(2).click();
+
         // Button: "Done → Pick Your Best Skill" (plain) / "Audit Complete → Lock Tool" (mythic)
-        // With all scores at default 0, the button is enabled immediately
         const scoringBtn = page.getByRole('button', { name: /Done|Audit Complete/i });
         await expect(scoringBtn).toBeVisible({ timeout: 10000 });
         await expect(scoringBtn).toBeEnabled();

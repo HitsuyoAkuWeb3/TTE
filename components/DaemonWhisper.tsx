@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateWhisper, DaemonWhisperResult } from '../services/geminiService';
 import { detectFlowState, FlowState, getTelemetry } from '../services/operatorTelemetry';
 import { OperatorProfile, Phase } from '../types';
+import { useVernacular } from '../contexts/VernacularContext';
 
 interface DaemonWhisperProps {
     phase: Phase;
@@ -33,6 +34,7 @@ const WHISPER_STYLES: Record<DaemonWhisperResult['type'], { icon: string; color:
 };
 
 export const DaemonWhisper: React.FC<DaemonWhisperProps> = ({ phase, profile, toolName }) => {
+    const { mode } = useVernacular();
     const [whisper, setWhisper] = useState<DaemonWhisperResult | null>(null);
     const [visible, setVisible] = useState(false);
     const [dismissed, setDismissed] = useState(false);
@@ -47,7 +49,7 @@ export const DaemonWhisper: React.FC<DaemonWhisperProps> = ({ phase, profile, to
         if (Date.now() - lastWhisperAt.current < WHISPER_COOLDOWN_MS) return;
 
         try {
-            const result = await generateWhisper(phase, flowState, profile, toolName);
+            const result = await generateWhisper(phase, flowState, profile, toolName, mode);
             lastWhisperAt.current = Date.now();
             setWhisper(result);
             setVisible(true);
@@ -61,7 +63,7 @@ export const DaemonWhisper: React.FC<DaemonWhisperProps> = ({ phase, profile, to
         } catch {
             // Silent failure — whispers are non-critical
         }
-    }, [phase, profile, toolName]);
+    }, [phase, profile, toolName, mode]);
 
     // Poll flow state
     useEffect(() => {

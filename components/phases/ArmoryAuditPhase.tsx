@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArmoryItem, OperatorProfile } from '../../types';
 import { classifyActivity, generateStarterDeck, StarterCard } from '../../services/geminiService';
 import { Button, Input, SectionHeader, ArmoryMap } from '../Visuals';
-import { useVernacular } from '../../contexts/VernacularContext';
+import { useVernacular, quadrantLabel } from '../../contexts/VernacularContext';
 import { logger } from '../../services/logger';
 
 const ARMORY_HARD_CAP = 15;
@@ -140,6 +140,7 @@ export const ArmoryAuditPhase: React.FC<{
     const [verb, setVerb] = useState('');
     const [isClassifying, setIsClassifying] = useState(false);
     const [viewMode, setViewMode] = useState<'spatial' | 'terminal'>('spatial');
+    const [isMapExpanded, setIsMapExpanded] = useState(true);
     const isAtCapacity = items.length >= ARMORY_HARD_CAP;
 
     // Deck of Sparks state
@@ -317,7 +318,7 @@ export const ArmoryAuditPhase: React.FC<{
                     <div className="bg-[#121212] border-2 border-zinc-700 h-[850px] overflow-y-auto relative flex flex-col">
                         <div className="p-4 border-b border-zinc-800 bg-void sticky top-0 z-20">
                             <h3 className="text-xs uppercase text-zinc-500 font-mono">
-                                Sovereign Primitives (Quick Add)
+                                {v.primitives_menu}
                             </h3>
                             <p className="text-[10px] text-zinc-500 mt-1">
                                 Click a category to reveal verified primitives.
@@ -339,21 +340,45 @@ export const ArmoryAuditPhase: React.FC<{
 
                 {viewMode === 'spatial' ? (
                     <div className="h-[850px] flex flex-col relative">
+                        {/* Collapsible Map Section */}
                         <div className="flex-none">
-                            <ArmoryMap items={items} />
-                            <div className="mt-6 p-4 border border-[#00FF41]/50 bg-[#00FF41]/10 text-[#00FF41] text-sm font-mono mb-4">
-                                WARNING: Ensure you have items in the <span className="font-bold">RITUAL</span> or <span className="font-bold">CRAFT</span> quadrants.
-                            </div>
+                            {/* Map Toggle Bar */}
+                            <button
+                                type="button"
+                                onClick={() => setIsMapExpanded(!isMapExpanded)}
+                                className="w-full flex items-center justify-between px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 transition-colors mb-2"
+                            >
+                                <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
+                                    {isMapExpanded ? '▼ QUADRANT MAP' : '▶ QUADRANT MAP'}
+                                </span>
+                                {!isMapExpanded && items.length > 0 && (
+                                    <span className="text-[10px] font-mono text-zinc-500">
+                                        {items.length} assets — {items.filter(i => i.quadrant === 'Ritual').length} {v.quadrant_ritual}, {items.filter(i => i.quadrant === 'Craft').length} {v.quadrant_craft}, {items.filter(i => i.quadrant === 'Sandbox').length} {v.quadrant_sandbox}, {items.filter(i => i.quadrant === 'Mischief').length} {v.quadrant_mischief}
+                                    </span>
+                                )}
+                                <span className="text-[10px] font-mono text-zinc-600">
+                                    {isMapExpanded ? 'COLLAPSE' : 'EXPAND'}
+                                </span>
+                            </button>
+
+                            {isMapExpanded && (
+                                <>
+                                    <ArmoryMap items={items} />
+                                    <div className="mt-6 p-4 border border-[#00FF41]/50 bg-[#00FF41]/10 text-[#00FF41] text-sm font-mono mb-4">
+                                        WARNING: Ensure you have items in the <span className="font-bold">RITUAL</span> or <span className="font-bold">CRAFT</span> quadrants.
+                                    </div>
+                                </>
+                            )}
                         </div>
 
-                        {/* Scrollable List */}
+                        {/* Scrollable Asset List — expands when map is collapsed */}
                         <div className="space-y-4 pr-2 border-t border-zinc-800 pt-4 flex-1 overflow-y-auto min-h-0">
                             <h3 className="text-xs uppercase text-zinc-500 font-mono">{v.armory_list_title} ({items.length})</h3>
                             {items.map(item => (
                                 <div key={item.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-sm">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="font-bold text-bone uppercase">{item.verb}</span>
-                                        <span className="text-xs font-mono text-zinc-500 uppercase">{item.quadrant}</span>
+                                        <span className="text-xs font-mono text-zinc-500 uppercase">{quadrantLabel(item.quadrant, v)}</span>
                                     </div>
                                     <div className="space-y-6 pt-2">
                                         <div className="space-y-2">
@@ -400,7 +425,7 @@ export const ArmoryAuditPhase: React.FC<{
                         {/* Pinned Proceed Button */}
                         <div className="flex-none pt-4 bg-void border-t border-zinc-800 mt-auto sticky bottom-0">
                             <Button onClick={onNext} disabled={items.length < 3} className="w-full">
-                                Proceed to Compression &rarr;
+                                {v.armory_proceed}
                             </Button>
                         </div>
                     </div>
@@ -444,7 +469,7 @@ export const ArmoryAuditPhase: React.FC<{
                                                 <span className={`text-[10px] uppercase ${item.quadrant === 'Ritual' || item.quadrant === 'Craft'
                                                     ? 'text-[#00FF41]'
                                                     : 'text-zinc-500'
-                                                    }`}>{item.quadrant}</span>
+                                                    }`}>{quadrantLabel(item.quadrant, v)}</span>
                                             </td>
                                             <td className="p-3 text-center">
                                                 <button

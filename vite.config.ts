@@ -36,8 +36,11 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     define: {
-      // API key only used client-side for Live API (WebSocket) + TTS
-      // Text generation goes through /api/gemini proxy in production
+      // 🚨 SECURITY WARNING 🚨
+      // This explicitly exposes the API Key to the client-side bundle.
+      // This is REQUIRED for the Gemini Live API (WebSockets) to work from the browser.
+      // YOU MUST RESTRICT THIS KEY BY DOMAIN (REFERRER) IN GOOGLE CLOUD CONSOLE.
+      // DO NOT REMOVE THIS UNLESS YOU MIGRATE LIVE API TO A BACKEND PROXY.
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
     },

@@ -4,15 +4,19 @@ import { Button, SectionHeader } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
 import { ToneWarden } from '../ToneWarden';
 import { calculateStreak, getStreakMilestone, XP_AWARDS } from '../../services/gamification';
+import { MomiyoseView } from './MomiyoseView';
+import { SimulationChamber } from '../SimulationChamber';
+import { SimulationResult } from '../../types';
 
 // ============================================================
 // RITUAL DASHBOARD — Post-Audit Daily Tracking
 // ============================================================
 // Story 5.1: Ouroboros Loop — Previous session hydration
 // Story 5.2: Daily check-in with micro-progress tracking
+// Story 5.3: Momiyose — Weekly Synthesis
 // ============================================================
 
-interface DailyEntry {
+export interface DailyEntry {
     date: string;
     clientReached: number;
     offersSent: number;
@@ -30,6 +34,7 @@ interface RitualDashboardProps {
     onReAudit?: () => void;
     onAwardXp?: (amount: number, reason: string) => void;
     onCremate?: () => void;
+    onSaveSimulation?: (result: SimulationResult) => void;
 }
 
 const MOOD_CONFIG: Record<DailyEntry['mood'], { label: string; color: string; border: string }> = {
@@ -47,7 +52,8 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
     onBack,
     onReAudit,
     onAwardXp,
-    onCremate
+    onCremate,
+    onSaveSimulation
 }) => {
     // Load entries from localStorage
     const storageKey = `ritual_${tool?.id || 'default'}`;
@@ -60,6 +66,8 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
     const [showEntry, setShowEntry] = useState(false);
     const [showWarden, setShowWarden] = useState(false);
+    const [showMomiyose, setShowMomiyose] = useState(false);
+    const [showSimulation, setShowSimulation] = useState(false);
     const { v } = useVernacular();
     const [newEntry, setNewEntry] = useState<DailyEntry>({
         date: new Date().toISOString().split('T')[0],
@@ -101,6 +109,43 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
         setShowEntry(false);
     };
 
+    const handleSealWeek = () => {
+        onAwardXp?.(100, v.momiyose_sealed_alert); // Bonus XP
+        setShowMomiyose(false);
+        // Could also mark entries as 'sealed' in future
+    };
+
+    const handleSimulationComplete = (passed: boolean, score: number, transcript?: { challenge: string; response: string }) => {
+        if (!tool || !profile) return;
+        
+        const result: SimulationResult = {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            archetypeId: 'random', // In future, we can track specific archetypes
+            toolId: tool.id,
+            score,
+            passed,
+            transcript: transcript
+                ? [
+                    { speaker: 'ai' as const, text: transcript.challenge },
+                    { speaker: 'user' as const, text: transcript.response },
+                ]
+                : [],
+            feedback: passed ? 'Mission Accomplished' : 'Tactical Refinement Needed'
+        };
+
+        // Award XP — pass or fail (doctrine: "survival yields data")
+        if (passed) {
+            onAwardXp?.(XP_AWARDS.SIMULATION_PASSED, v.simulation_pass_msg);
+        } else {
+            onAwardXp?.(XP_AWARDS.SIMULATION_EFFORT, v.simulation_fail_msg);
+        }
+
+        // Persist
+        onSaveSimulation?.(result);
+        setShowSimulation(false);
+    };
+
     // Compute aggregates
     const totalRevenue = entries.reduce((sum, e) => sum + e.revenue, 0);
     const totalClients = entries.reduce((sum, e) => sum + e.clientReached, 0);
@@ -117,11 +162,30 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
     return (
         <div className="max-w-5xl mx-auto w-full animate-fade-in space-y-8 font-mono">
+           <div className="flex justify-between items-start">
             <SectionHeader
                 title={v.ritual_dashboard}
                 subtitle={v.ritual_subtitle}
                 onBack={onBack}
             />
+             {entries.length >= 3 && (
+                <button 
+                  onClick={() => setShowMomiyose(true)}
+                  className="text-[10px] text-indigo-400 border border-indigo-900/50 bg-indigo-950/20 px-3 py-1 uppercase tracking-widest hover:bg-indigo-900/40 transition-all"
+                >
+                  {v.momiyose_toggle}
+                </button>
+             )}
+            </div>
+
+            {/* Momiyose View */}
+            {showMomiyose && (
+                <MomiyoseView 
+                    entries={entries} 
+                    onClose={() => setShowMomiyose(false)} 
+                    onSeal={handleSealWeek} 
+                />
+            )}
 
             {/* Status Bar */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -130,7 +194,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">{v.ritual_streak}</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
-                    <div className="text-2xl font-black text-emerald-400">${totalRevenue.toLocaleString()}</div>
+                    <div className="text-2xl font-black text-[#00FF41]">${totalRevenue.toLocaleString()}</div>
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">{v.ritual_dashboard_revenue || 'Total Revenue'}</div>
                 </div>
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4 text-center">
@@ -148,7 +212,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                 <div className="border border-zinc-800 bg-zinc-900/50 p-4">
                     <div className="flex justify-between text-[9px] font-mono uppercase text-zinc-500 mb-2">
                         <span>{v.ritual_signal_fidelity}</span>
-                        <span className="text-spirit">{Math.min(100, Math.round((entries.length / 30) * 100))}%</span>
+                        <span className="text-[#00FF41]">{Math.min(100, Math.round((entries.length / 30) * 100))}%</span>
                     </div>
                     <div className="w-full h-2 bg-zinc-800 relative overflow-hidden">
                         <div
@@ -175,24 +239,58 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             </div>
 
 
+
+
+            {/* Active Tool & World Forge */}
             {tool && (
-                <div className="border border-[#00FF41]/20 bg-[#00FF41]/5 p-4 flex items-center justify-between">
-                    <div>
-                        <div className="text-[10px] text-zinc-500 uppercase">{v.ritual_active_weapon}</div>
-                        <div className="text-sm font-bold text-bone">{tool.plainName}</div>
-                    </div>
-                    {theoryOfValue?.godfatherOffer && (
-                        <div className="text-right">
-                            <div className="text-[10px] text-zinc-500 uppercase">{v.ritual_offer_label}</div>
-                            <div className="text-sm text-yellow-400">{theoryOfValue.godfatherOffer.price}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-zinc-800 bg-void p-4 flex items-center justify-between">
+                        <div>
+                            <div className="text-[10px] text-zinc-500 uppercase">{v.ritual_active_weapon}</div>
+                            <div className="text-sm font-bold text-bone">{tool.plainName}</div>
                         </div>
-                    )}
+                        {theoryOfValue?.godfatherOffer && (
+                            <div className="text-right">
+                                <div className="text-[10px] text-[#00FF41] uppercase">{v.ritual_offer_label}</div>
+                                <div className="text-sm font-bold text-[#00FF41]">{theoryOfValue.godfatherOffer.price}</div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* World Forge Launch Button */}
+                    <button
+                        onClick={() => setShowSimulation(true)}
+                        className="p-4 border border-zinc-800 bg-void hover:bg-zinc-900 hover:border-zinc-600 transition-all group text-left relative overflow-hidden"
+                    >
+                        <style>{`
+                            @keyframes neon-pulse {
+                                0%, 100% { opacity: 0.6; text-shadow: 0 0 4px rgba(0,255,65,0.2); }
+                                50% { opacity: 1; text-shadow: 0 0 12px rgba(0,255,65,0.5), 0 0 24px rgba(0,255,65,0.2); }
+                            }
+                        `}</style>
+                        <div className="relative z-10 flex justify-between items-center">
+                            <div>
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">
+                                    {v.simulation_title || 'World Forge'}
+                                </div>
+                                <div
+                                    className="text-sm font-bold text-[#00FF41]"
+                                    style={{ animation: 'neon-pulse 3s ease-in-out infinite' }}
+                                >
+                                    {v.simulation_start_btn || 'Run Simulation'}
+                                </div>
+                            </div>
+                            <span className="text-2xl opacity-50 group-hover:opacity-100 transition-opacity">⚔</span>
+                        </div>
+                        {/* Background Glitch Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-zinc-700/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    </button>
                 </div>
             )}
 
             {/* False Positive Warning */}
             {isFalsePositive && (
-                <div className="border border-red-800/60 bg-red-950/20 p-5 space-y-3">
+                <div className="border border-zinc-800 bg-void p-5 space-y-3">
                     <div className="text-xs uppercase text-red-400 font-mono tracking-wider">{v.ritual_warning_title}</div>
                     <p className="text-sm text-zinc-400 font-mono leading-relaxed">
                         {v.ritual_warning_detail.replace('{days}', String(daysSinceLastEntry))}
@@ -212,15 +310,15 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             {!hasEntryToday && !showEntry && (
                 <button
                     onClick={() => setShowEntry(true)}
-                    className="w-full p-6 border border-dashed border-yellow-700/50 bg-yellow-900/5 text-yellow-500 text-sm uppercase tracking-wider hover:border-yellow-500 hover:bg-yellow-900/10 transition-all"
+                    className="w-full p-6 border border-dashed border-zinc-700 bg-void text-zinc-400 text-sm uppercase tracking-wider hover:border-zinc-500 hover:text-bone hover:bg-zinc-900 transition-all"
                 >
                     {v.ritual_log_button}
                 </button>
             )}
 
             {hasEntryToday && !showEntry && (
-                <div className="p-4 border border-emerald-800/30 bg-emerald-900/5 text-center">
-                    <span className="text-xs font-mono text-emerald-400 uppercase">{v.ritual_entry_title}</span>
+                <div className="p-4 border border-zinc-800 bg-void text-center">
+                    <span className="text-xs font-mono text-zinc-400 uppercase">✓ {v.ritual_entry_title}</span>
                 </div>
             )}
 
@@ -328,7 +426,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                                     <span className="text-xs text-zinc-400">{entry.offersSent} offers</span>
                                 </div>
                                 <div className="text-right min-w-[80px]">
-                                    <span className={`text-xs font-bold ${entry.revenue > 0 ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                                    <span className={`text-xs font-bold ${entry.revenue > 0 ? 'text-[#00FF41]' : 'text-zinc-600'}`}>
                                         ${entry.revenue.toLocaleString()}
                                     </span>
                                 </div>
@@ -342,11 +440,11 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             {theoryOfValue && profile && (
                 <button
                     onClick={() => setShowWarden(true)}
-                    className="w-full p-5 border border-spirit/20 bg-spirit/5 text-spirit text-sm uppercase tracking-wider hover:border-spirit/50 hover:bg-spirit/10 transition-all font-mono flex items-center justify-center gap-3"
+                    className="w-full p-5 border border-zinc-800 bg-void text-zinc-400 text-sm uppercase tracking-wider hover:border-zinc-600 hover:text-bone hover:bg-zinc-900 transition-all font-mono flex items-center justify-center gap-3"
                 >
                     <span className="text-lg">🔊</span>
                     {v.warden_title}
-                    <span className="text-[9px] text-spirit/60">— {v.warden_subtitle}</span>
+                    <span className="text-[9px] text-zinc-600">— {v.warden_subtitle}</span>
                 </button>
             )}
 
@@ -356,6 +454,17 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                     profile={profile}
                     theoryOfValue={theoryOfValue}
                     onClose={() => setShowWarden(false)}
+                />
+            )}
+
+            {/* Simulation Chamber — World Forge */}
+            {showSimulation && tool && profile && theoryOfValue && (
+                <SimulationChamber
+                    tool={tool}
+                    profile={profile}
+                    theoryOfValue={theoryOfValue}
+                    onComplete={handleSimulationComplete}
+                    onCancel={() => setShowSimulation(false)}
                 />
             )}
 

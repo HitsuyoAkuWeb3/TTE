@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useOrg } from '../contexts/OrgContext';
 import { apiFetch } from '../services/apiClient';
 import { Button } from './Visuals';
-import { useVernacular } from '../contexts/VernacularContext';
+import { useVernacular, quadrantLabel } from '../contexts/VernacularContext';
 
 // ============================================================
 // ORG DASHBOARD — Org-Scoped Shared Assets Overview
@@ -133,7 +133,7 @@ export const OrgDashboard: React.FC = () => {
                                         {item.verb}
                                     </div>
                                     <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mt-1 flex items-center gap-4">
-                                        <span>{item.quadrant}</span>
+                                        <span>{quadrantLabel(item.quadrant, v)}</span>
                                         <span>by {item.added_by.slice(0, 8)}...</span>
                                         <span>{new Date(item.created_at).toLocaleDateString()}</span>
                                     </div>
