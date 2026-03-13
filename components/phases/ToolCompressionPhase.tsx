@@ -72,8 +72,8 @@ const CandidateResultsView: React.FC<{
                     <div className="mt-8 pt-6 border-t border-zinc-800">
                         <span className="text-[10px] text-zinc-600 uppercase font-bold block mb-3 text-center tracking-widest">{v.chimera_fused_from || 'Fused From'}</span>
                         <div className="flex flex-wrap justify-center gap-2">
-                            {sovereign.constituents.map((c, i) => (
-                                <span key={i} className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-1 border border-zinc-800">
+                            {sovereign.constituents.map((c) => (
+                                <span key={c.name} className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-1 border border-zinc-800">
                                     {c.name}
                                 </span>
                             ))}
@@ -112,7 +112,7 @@ export const ToolCompressionPhase: React.FC<{
     const [candidates, setCandidates] = useState<ToolCandidate[]>([]);
     const { v } = useVernacular();
     const [analyzing, setAnalyzing] = useState(false);
-    const [synthesizingSovereign, setSynthesizingSovereign] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Compression algorithm state
     const [mergeSuggestions, setMergeSuggestions] = useState<MergeSuggestion[]>([]);
@@ -130,49 +130,62 @@ export const ToolCompressionPhase: React.FC<{
 
     const handleCompress = async () => {
         setAnalyzing(true);
-        const intermediateCandidates: ToolCandidate[] = [];
+        setError(null);
+        try {
+            const intermediateCandidates: ToolCandidate[] = [];
 
-        // 1. Synthesize the 3 individual definitions (Hidden from user final view)
-        for (const id of selections) {
-            const item = armory.find(i => i.id === id);
-            if (!item) continue;
+            // 1. Synthesize the 3 individual definitions (Hidden from user final view)
+            for (const id of selections) {
+                const item = armory.find(i => i.id === id);
+                if (!item) continue;
 
-            const analysis = await synthesizeToolDefinition(item.verb, item.quadrant);
+                const analysis = await synthesizeToolDefinition(item.verb, item.quadrant);
 
-            intermediateCandidates.push({
-                id: item.id,
-                originalVerb: item.verb,
-                plainName: analysis.plainName,
-                functionStatement: analysis.functionStatement,
-                promise: analysis.promise,
-                antiPitch: analysis.antiPitch,
-                scores: { unbiddenRequests: 0, frictionlessDoing: 0, resultEvidence: 0, extractionRisk: 0 },
-                proofs: {}
-            });
+                intermediateCandidates.push({
+                    id: item.id,
+                    originalVerb: item.verb,
+                    plainName: analysis.plainName,
+                    functionStatement: analysis.functionStatement,
+                    promise: analysis.promise,
+                    antiPitch: analysis.antiPitch,
+                    scores: { unbiddenRequests: 0, frictionlessDoing: 0, resultEvidence: 0, extractionRisk: 0 },
+                    proofs: {}
+                });
+            }
+
+            // 2. Immediately Fuse into Sovereign Authority
+            const sovereign = await synthesizeSovereignAuthority(intermediateCandidates);
+            
+            // 3. Attach constituents for provenance
+            sovereign.constituents = intermediateCandidates.map(c => ({
+                name: c.plainName,
+                function: c.functionStatement
+            }));
+
+            // 4. Set the single result
+            const result = [sovereign];
+            setCandidates(result);
+            onSelectCandidates(result);
+        } catch (err: any) {
+            setError(err.message || "Failed to compress tools. AI synthesis error. Please try again.");
+            setCandidates([]);
+        } finally {
+            setAnalyzing(false);
         }
-
-        // 2. Immediately Fuse into Sovereign Authority
-        const sovereign = await synthesizeSovereignAuthority(intermediateCandidates);
-        
-        // 3. Attach constituents for provenance
-        sovereign.constituents = intermediateCandidates.map(c => ({
-            name: c.plainName,
-            function: c.functionStatement
-        }));
-
-        // 4. Set the single result
-        const result = [sovereign];
-        setCandidates(result);
-        onSelectCandidates(result);
-        setAnalyzing(false);
     };
 
     const handleSuggestMerge = async () => {
         setIsCompressing(true);
-        const items = armory.map(a => ({ id: a.id, name: a.verb, quadrant: a.quadrant }));
-        const suggestions = await suggestMerge(items);
-        setMergeSuggestions(suggestions);
-        setIsCompressing(false);
+        setError(null);
+        try {
+            const items = armory.map(a => ({ id: a.id, name: a.verb, quadrant: a.quadrant }));
+            const suggestions = await suggestMerge(items);
+            setMergeSuggestions(suggestions);
+        } catch (err: any) {
+            setError(err.message || "Failed to generate AI merge suggestions. Please try again.");
+        } finally {
+            setIsCompressing(false);
+        }
     };
 
     const handleAcceptMerge = (suggestion: MergeSuggestion) => {
@@ -212,6 +225,20 @@ export const ToolCompressionPhase: React.FC<{
                 subtitle={v.compression_select_subtitle}
                 onBack={onBack}
             />
+
+            {/* Error Display */}
+            {error && (
+                <div className="mb-6 p-4 border border-red-800/50 bg-red-900/10 text-red-400 text-sm font-mono flex justify-between items-center animate-fade-in shadow-[0_0_10px_rgba(255,0,0,0.1)]">
+                    <div className="flex items-center gap-3">
+                        <span className="text-red-400 text-lg">⚠️</span>
+                        <div>
+                            <div className="text-xs font-mono font-bold uppercase tracking-wider">AI Service Error</div>
+                            <span className="text-[10px] opacity-80">{error}</span>
+                        </div>
+                    </div>
+                    <button onClick={() => setError(null)} className="hover:text-white px-2 py-1 text-xs">✕</button>
+                </div>
+            )}
 
             {/* Hard Cap Warning */}
             {isOverCap && (

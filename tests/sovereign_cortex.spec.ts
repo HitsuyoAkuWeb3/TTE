@@ -123,7 +123,7 @@ test.describe('Sovereign Cortex (Tier 3)', () => {
             //     await page.mouse.up();
             // }
             // Wait for Vow to dismiss
-            await expect(holdButton).not.toBeVisible();
+            await expect(startButton).not.toBeVisible();
         }
 
         // Handle potential Intro Phase (if profile exists)

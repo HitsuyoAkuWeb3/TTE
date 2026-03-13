@@ -201,9 +201,9 @@ export default function App() {
           if (index.length > 0) hasSavedSessions = true;
         } catch { /* localStorage unavailable */ }
       }
-      // If they have saved tools and are still on INTRO, redirect to Archive
+      // If they have saved tools and are still on INTRO or CALIBRATION, redirect to Archive
       if (hasSavedSessions) {
-        setState(s => s.currentPhase === Phase.INTRO ? { ...s, currentPhase: Phase.ARCHIVE } : s);
+        setState(s => (s.currentPhase === Phase.INTRO || s.currentPhase === Phase.CALIBRATION) ? { ...s, currentPhase: Phase.ARCHIVE } : s);
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -501,16 +501,16 @@ export default function App() {
         ) : (
           <>
         {state.currentPhase === Phase.INTRO && (
-          <IntroPhase onStart={(name) => setState(s => ({ ...s, clientName: name, currentPhase: Phase.ARMORY_AUDIT }))} />
+          <IntroPhase xp={state.xp} onStart={(name) => setState(s => ({ ...s, clientName: name, currentPhase: Phase.ARMORY_AUDIT }))} />
         )}
 
         {state.currentPhase === Phase.ARCHIVE && user && (
           <ArchivePhase
             userId={user.id}
             onSelect={(loadedState) => {
-              // If the tool has a completed plan, route directly to the Dashboard
+              // If the tool has a completed plan, route directly to the Forge (Installation)
               const targetPhase = (loadedState.pilotPlan && loadedState.selectedToolId)
-                ? Phase.RITUAL_DASHBOARD
+                ? Phase.INSTALLATION
                 : loadedState.currentPhase;
               setState({ ...loadedState, userId: user.id, profile: state.profile, currentPhase: targetPhase });
             }}

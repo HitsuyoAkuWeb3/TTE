@@ -88,7 +88,7 @@ export default withAuth(async (req: AuthedRequest, res: VercelResponse) => {
         const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
         const verifyResponse = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-2.5-flash', // Server-side — keep in sync with AIModels.text.fallback
             contents: [{
                 role: 'user',
                 parts: [{

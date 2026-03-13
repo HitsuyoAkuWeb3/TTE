@@ -244,12 +244,12 @@ test.describe('World Forge (Tier 5)', () => {
 
         // 3. Click World Forge launch button
         // v.simulation_start_btn: 'Start Practice' (plain), 'START SIMULATION' (industrial), 'ENGAGE SIMULATION' (mythic)
-        const forgeButton = page.getByText(/Start Practice|START SIMULATION|ENGAGE SIMULATION/i);
+        const forgeButton = page.getByText(/Start Practice|START SIMULATION|ENGAGE SIMULATION|DO THE REP/i);
         await expect(forgeButton).toBeVisible({ timeout: 5000 });
         await forgeButton.click();
 
         // 4. Verify Simulation Chamber modal opens (header has ⧫ prefix)
-        await expect(page.getByText(/⧫ Practice Round|⧫ PRACTICE SIMULATION|⧫ COMBAT SIMULATION/i)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(/⧫ THE REP|⧫ Practice Round|⧫ PRACTICE SIMULATION|⧫ COMBAT SIMULATION/i)).toBeVisible({ timeout: 10000 });
 
         // 5. Wait for scenario + challenge to render (AI call resolves)
         await expect(page.getByText(/Situation|ADVERSARY ARCHETYPE|SCENARIO ARCHETYPE|Scenario/i)).toBeVisible({ timeout: 15000 });
@@ -274,7 +274,7 @@ test.describe('World Forge (Tier 5)', () => {
         await expect(page.getByText(/Strong tactical framing/i)).toBeVisible();
 
         // 9. Verify pass button (v.simulation_pass_msg across modes + fallback)
-        const completeBtn = page.getByRole('button', { name: /You Did It|PASSED|VICTORY|Simulation Complete/i });
+        const completeBtn = page.getByRole('button', { name: /SOLID|Nailed it|You Did It|PASSED|VICTORY|Simulation Complete/i });
         await expect(completeBtn).toBeVisible({ timeout: 5000 });
 
         // 10. Click to dismiss
@@ -308,22 +308,22 @@ test.describe('World Forge (Tier 5)', () => {
                 await expect(btn).not.toBeVisible({ timeout: 3000 });
             } catch { /* overlay not present */ }
         }
-        const forgeButton = page.getByText(/Start Practice|START SIMULATION|ENGAGE SIMULATION/i);
+        const forgeButton = page.getByText(/Start Practice|START SIMULATION|ENGAGE SIMULATION|DO THE REP/i);
         await forgeButton.click();
 
         // 3. Wait for modal (header has ⧫ prefix)
-        await expect(page.getByText(/⧫ Practice Round|⧫ PRACTICE SIMULATION|⧫ COMBAT SIMULATION/i)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(/⧫ THE REP|⧫ Practice Round|⧫ PRACTICE SIMULATION|⧫ COMBAT SIMULATION/i)).toBeVisible({ timeout: 10000 });
 
         // 4. Click Exit
         // v.simulation_exit: 'Exit' (plain/industrial), 'Disengage' (mythic)
-        const exitBtn = page.getByRole('button', { name: /Exit|Disengage/i });
+        const exitBtn = page.getByRole('button', { name: /Bail|Exit|Disengage/i });
         await expect(exitBtn).toBeVisible();
         await exitBtn.click();
 
         // 5. Modal should be dismissed — back on dashboard
         await expect(page.getByText('Strategic Optimization')).toBeVisible({ timeout: 5000 });
         // Simulation modal header should be gone
-        await expect(page.getByText(/⧫ Practice Round|⧫ PRACTICE SIMULATION|⧫ COMBAT SIMULATION/i)).not.toBeVisible();
+        await expect(page.getByText(/⧫ THE REP|⧫ Practice Round|⧫ PRACTICE SIMULATION|⧫ COMBAT SIMULATION/i)).not.toBeVisible();
         console.log('World Forge — Exit Flow Complete ✓');
     });
 });

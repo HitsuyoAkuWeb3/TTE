@@ -39,6 +39,8 @@ export const XP_AWARDS = {
     INTERROGATION_PERFECT: 100,
     SIMULATION_PASSED: 60,
     SIMULATION_EFFORT: 10,
+    PILOT_ACT_COMPLETED: 75,
+    PILOT_PLAN_COMPLETED: 250,
 } as const;
 
 /** Get rank for a given XP total */

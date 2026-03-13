@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ToolCandidate, TheoryOfValue, OperatorProfile } from '../../types';
 import { Button, SectionHeader } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
-import { ToneWarden } from '../ToneWarden';
+import { ToneWarden, ActiveWardenTextarea } from '../ToneWarden';
 import { calculateStreak, getStreakMilestone, XP_AWARDS } from '../../services/gamification';
 import { MomiyoseView } from './MomiyoseView';
 import { SimulationChamber } from '../SimulationChamber';
@@ -22,7 +22,8 @@ export interface DailyEntry {
     offersSent: number;
     revenue: number;
     note: string;
-    mood: 'focused' | 'scattered' | 'blocked' | 'flow';
+    mood: 'destroyed' | 'stalled' | 'focused' | 'flow' | 'sovereign';
+    completedPlanDays?: number[]; // Track which days of the pilot plan were completed
 }
 
 interface RitualDashboardProps {
@@ -38,10 +39,11 @@ interface RitualDashboardProps {
 }
 
 const MOOD_CONFIG: Record<DailyEntry['mood'], { label: string; color: string; border: string }> = {
+    destroyed: { label: 'DESTROYED', color: 'text-red-600', border: 'border-red-900' },
+    stalled: { label: 'STALLED', color: 'text-yellow-500', border: 'border-yellow-800' },
     focused: { label: 'FOCUSED', color: 'text-emerald-400', border: 'border-emerald-700' },
-    scattered: { label: 'SCATTERED', color: 'text-yellow-400', border: 'border-yellow-700' },
-    blocked: { label: 'BLOCKED', color: 'text-red-400', border: 'border-red-700' },
     flow: { label: 'FLOW STATE', color: 'text-cyan-400', border: 'border-cyan-700' },
+    sovereign: { label: 'SOVEREIGN', color: 'text-purple-400', border: 'border-purple-700' },
 };
 
 export const RitualDashboard: React.FC<RitualDashboardProps> = ({
@@ -64,6 +66,19 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
         } catch { return []; }
     });
 
+    // Parse the 7-day plan into actionable days
+    const pilotDays = React.useMemo(() => {
+        if (!pilotPlan) return [];
+        // Match headers like "## Day 1:", "## Day X"
+        const dayBlocks = pilotPlan.split(/##?\s*Day\s*\d+:/i).filter(Boolean);
+        // If it didn't split correctly, try generic "Day X"
+        if (dayBlocks.length <= 1) {
+             const fallbackBlocks = pilotPlan.split(/\bDay\s*\d+:/i).filter(Boolean);
+             return fallbackBlocks.length > 1 ? fallbackBlocks.slice(1) : []; // Slice out introductory text
+        }
+        return dayBlocks;
+    }, [pilotPlan]);
+
     const [showEntry, setShowEntry] = useState(false);
     const [showWarden, setShowWarden] = useState(false);
     const [showMomiyose, setShowMomiyose] = useState(false);
@@ -76,6 +91,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
         revenue: 0,
         note: '',
         mood: 'focused',
+        completedPlanDays: [],
     });
 
     // Persist entries
@@ -89,6 +105,21 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
 
         // Award RITUAL_ENTRY XP
         onAwardXp?.(XP_AWARDS.RITUAL_ENTRY, v.xp_ritual_entry);
+
+        // Award Pilot Plan XP
+        if (newEntry.completedPlanDays && newEntry.completedPlanDays.length > 0) {
+            onAwardXp?.(XP_AWARDS.PILOT_ACT_COMPLETED * newEntry.completedPlanDays.length, `Completed Plan Day(s): ${newEntry.completedPlanDays.join(', ')}`);
+            
+            // Check if all days are completed
+            const newlyCompleted = newEntry.completedPlanDays;
+            const pastCompleted = entries.flatMap(e => e.completedPlanDays || []);
+            const allCompleted = new Set([...newlyCompleted, ...pastCompleted]);
+            
+            if (pilotDays.length > 0 && allCompleted.size >= pilotDays.length && pastCompleted.length < pilotDays.length) {
+                // Award completion bonus
+                 onAwardXp?.(XP_AWARDS.PILOT_PLAN_COMPLETED, "7-Day Pilot Plan Fully Executed");
+            }
+        }
 
         // Check for streak milestones
         const dates = updatedEntries.map(e => e.date);
@@ -105,6 +136,7 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
             revenue: 0,
             note: '',
             mood: 'focused',
+            completedPlanDays: [],
         });
         setShowEntry(false);
     };
@@ -137,6 +169,26 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
         // Award XP — pass or fail (doctrine: "survival yields data")
         if (passed) {
             onAwardXp?.(XP_AWARDS.SIMULATION_PASSED, v.simulation_pass_msg);
+            
+            // Automatically log an entry to update the Ledger
+            const repEntry: DailyEntry = {
+                date: new Date().toISOString().split('T')[0],
+                clientReached: 0,
+                offersSent: 0,
+                revenue: 0,
+                note: `Simulation rep passed with score ${score}.`,
+                mood: 'focused',
+            };
+            const updatedEntries = [repEntry, ...entries];
+            setEntries(updatedEntries);
+            
+            // Check for streak milestones
+            const dates = updatedEntries.map(e => e.date);
+            const newStreak = calculateStreak(dates);
+            const milestone = getStreakMilestone(newStreak);
+            if (milestone) {
+                onAwardXp?.(milestone, `${newStreak}-Day Streak`);
+            }
         } else {
             onAwardXp?.(XP_AWARDS.SIMULATION_EFFORT, v.simulation_fail_msg);
         }
@@ -159,6 +211,8 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
         ? Math.floor((Date.now() - new Date(entries[0].date).getTime()) / (1000 * 60 * 60 * 24))
         : 0;
     const isFalsePositive = entries.length > 0 && daysSinceLastEntry >= 3 && streak === 0;
+
+    const completedPlanDaysSet = new Set(entries.flatMap(e => e.completedPlanDays || []));
 
     return (
         <div className="max-w-5xl mx-auto w-full animate-fade-in space-y-8 font-mono">
@@ -238,8 +292,39 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                 </div>
             </div>
 
-
-
+            {/* 7-Day Pilot Plan Progress */}
+            {pilotDays.length > 0 && (
+                <div className="border border-zinc-800 bg-void p-4">
+                    <div className="flex justify-between items-end mb-4 border-b border-zinc-800 pb-2">
+                        <div>
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{v.plan_title || 'Structured Progress'}</div>
+                            <div className="text-sm font-bold text-bone">7-Day Pilot Plan</div>
+                        </div>
+                        <div className="text-right">
+                             <div className="text-[10px] text-emerald-400 uppercase tracking-widest">{completedPlanDaysSet.size} / {pilotDays.length} Done</div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                        {pilotDays.map((_day, idx) => {
+                            const dayNum = idx + 1;
+                            const isCompleted = completedPlanDaysSet.has(dayNum);
+                            return (
+                                <div 
+                                    key={dayNum} 
+                                    className={`aspect-square flex items-center justify-center border text-xs font-mono transition-all
+                                        ${isCompleted 
+                                            ? 'bg-emerald-950/30 border-emerald-800 text-emerald-400' 
+                                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-600'
+                                        }`}
+                                    title={`Day ${dayNum}`}
+                                >
+                                    {isCompleted ? '✓' : dayNum}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Active Tool & World Forge */}
             {tool && (
@@ -382,10 +467,48 @@ export const RitualDashboard: React.FC<RitualDashboardProps> = ({
                         </div>
                     </div>
 
+                     {/* Pilot Plan Selection */}
+                     {pilotDays.length > 0 && (
+                        <div>
+                            <span className="text-[10px] text-zinc-500 uppercase block mb-2">Check Off Completed Plan Days</span>
+                            <div className="flex flex-wrap gap-2">
+                                {pilotDays.map((_day, idx) => {
+                                    const dayNum = idx + 1;
+                                    const isPreviouslyCompleted = completedPlanDaysSet.has(dayNum);
+                                    if (isPreviouslyCompleted) return null; // Hide already completed days
+
+                                    const isSelected = newEntry.completedPlanDays?.includes(dayNum);
+
+                                    return (
+                                        <button
+                                            key={dayNum}
+                                            type="button"
+                                            onClick={() => setNewEntry(p => {
+                                                const current = p.completedPlanDays || [];
+                                                return {
+                                                    ...p,
+                                                    completedPlanDays: isSelected 
+                                                        ? current.filter(d => d !== dayNum)
+                                                        : [...current, dayNum]
+                                                };
+                                            })}
+                                            className={`py-1 px-3 text-[10px] font-mono border transition-all ${isSelected
+                                                ? 'bg-emerald-950/40 border-emerald-600 text-emerald-400 font-bold shadow-[0_0_10px_rgba(52,211,153,0.2)]'
+                                                : 'text-zinc-500 border-zinc-700 bg-zinc-900/50 hover:border-zinc-500 hover:text-zinc-300'
+                                            }`}
+                                        >
+                                            {isSelected ? '✓ ' : ''}Day {dayNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Note */}
                     <div>
                         <label htmlFor="ritual-notes" className="text-[10px] text-zinc-500 uppercase block mb-1">{v.ritual_notes_label}</label>
-                        <textarea
+                        <ActiveWardenTextarea
                             id="ritual-notes"
                             value={newEntry.note}
                             onChange={(e) => setNewEntry(p => ({ ...p, note: e.target.value }))}
@@ -481,7 +604,7 @@ const DossierCremation: React.FC<{ onCremate: () => void }> = ({ onCremate }) =>
     const [isOpen, setIsOpen] = useState(false);
     const [confirmText, setConfirmText] = useState('');
     const { v } = useVernacular();
-    const CONFIRM_WORD = 'CREMATE';
+    const CONFIRM_WORD = 'I ACKNOWLEDGE THIS ASSET IS NOW ASH';
     const isConfirmed = confirmText === CONFIRM_WORD;
 
     return (

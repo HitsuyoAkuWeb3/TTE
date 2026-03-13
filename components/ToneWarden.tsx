@@ -44,6 +44,50 @@ function getScoreGlow(score: number): string {
     return 'shadow-[0_0_20px_rgba(52,211,153,0.3)]';
 }
 
+const COMMODITY_WORDS = [
+    'unlock', 'leverage', 'delve', 'synergy', 'game-changer', 'empower', 
+    'disrupt', 'dive deep', 'value-add', 'seamless', 'holistic', 'navigate', 'landscape'
+];
+
+export interface ActiveWardenTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+    onDetectDrift?: (word: string) => void;
+}
+
+export const ActiveWardenTextarea: React.FC<ActiveWardenTextareaProps> = ({ onChange, className, ...props }) => {
+    const [warning, setWarning] = useState<string | null>(null);
+
+    const checkDraft = (text: string) => {
+        for (const word of COMMODITY_WORDS) {
+            const regex = new RegExp(`\\b${word}\\b`, 'i');
+            if (regex.test(text)) {
+                setWarning(`Signal Drift: Commodity language detected ("${word}")`);
+                return;
+            }
+        }
+        setWarning(null);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        checkDraft(e.target.value);
+        if (onChange) onChange(e);
+    };
+
+    return (
+        <div className="relative w-full">
+            <textarea
+                onChange={handleChange}
+                className={`${className} ${warning ? 'border-red-500/50 focus:border-red-500 transition-colors duration-300' : 'transition-colors duration-300'}`}
+                {...props}
+            />
+            {warning && (
+                <div className="absolute -top-3 right-2 bg-red-950/80 border border-red-800 text-[9px] text-red-400 px-2 py-0.5 font-mono uppercase tracking-widest animate-pulse pointer-events-none z-10 shadow-hard-hazard">
+                    {warning}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const ToneWarden: React.FC<ToneWardenProps> = ({
     profile, theoryOfValue, onClose, mode = 'advisory', onIntercept, initialDraft = ''
 }) => {

@@ -3,6 +3,7 @@ import { ToolCandidate } from '../../types';
 import { Button, SectionHeader } from '../Visuals';
 import { challengeScore, ChallengeResult } from '../../services/geminiService';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { ActiveWardenTextarea } from '../ToneWarden';
 import { logger } from '../../services/logger';
 
 // ============================================================
@@ -342,7 +343,7 @@ export const EvidenceScoringPhase: React.FC<{
                     {activeCandidate.scores.unbiddenRequests >= 3 && (
                         <div className="mt-4 animate-fade-in">
                             <label htmlFor="proof-unbidden" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{v.scoring_proof_unbidden}</label>
-                            <textarea
+                            <ActiveWardenTextarea
                                 id="proof-unbidden"
                                 className="w-full bg-zinc-900 border border-zinc-700 text-bone p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
                                 placeholder="Paste the DM content, email, or request here..."
@@ -378,7 +379,7 @@ export const EvidenceScoringPhase: React.FC<{
                     {activeCandidate.scores.resultEvidence >= 3 && (
                         <div className="mt-4 animate-fade-in">
                             <label htmlFor="proof-result" className="block text-xs uppercase text-zinc-500 mb-1 font-mono">{v.scoring_proof_result}</label>
-                            <textarea
+                            <ActiveWardenTextarea
                                 id="proof-result"
                                 className="w-full bg-zinc-900 border border-zinc-700 text-bone p-3 font-mono text-sm h-20 focus:border-yellow-500 focus:outline-none transition-colors"
                                 placeholder="Paste the testimonial, case study URL, or metric..."

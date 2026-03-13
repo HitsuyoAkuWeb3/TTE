@@ -142,6 +142,7 @@ export const ArmoryAuditPhase: React.FC<{
     const [viewMode, setViewMode] = useState<'spatial' | 'terminal'>('spatial');
     const [isMapExpanded, setIsMapExpanded] = useState(true);
     const isAtCapacity = items.length >= ARMORY_HARD_CAP;
+    const [error, setError] = useState<string | null>(null);
 
     // Deck of Sparks state
     const [starterDeck, setStarterDeck] = useState<StarterCard[]>([]);
@@ -157,27 +158,33 @@ export const ArmoryAuditPhase: React.FC<{
         if (profile && items.length === 0 && !isDeckDismissed && starterDeck.length === 0) {
             generationRef.current = true;
             setIsDeckLoading(true);
+            setError(null);
             generateStarterDeck(profile.industry, profile.preferredTone)
                 .then(cards => setStarterDeck(cards))
                 .catch(err => {
                     logger.error('DECK', 'Failed to generate deck:', err);
-                    generationRef.current = false; // Allow retry on error? Or keep blocked? 
+                    setError(err.message || "Failed to generate AI Starter Deck. You can continue adding items manually.");
                     // Keeping blocked to prevent loops is safer for "flashing" issues.
-                    // But if it fails, user gets nothing. 
-                    // optimizing for stability first.
                 })
                 .finally(() => setIsDeckLoading(false));
         }
-    }, [profile]);
+    }, [profile, items.length, isDeckDismissed, starterDeck.length]);
 
     const processItem = async (text: string, contextDesc?: string) => {
         if (!text.trim() || isAtCapacity) return;
         setIsClassifying(true);
-        const query = contextDesc ? `${text}: ${contextDesc}` : text;
-        const pos = await classifyActivity(query);
-        onAddItem(text, pos.x, pos.y);
-        setVerb('');
-        setIsClassifying(false);
+        setError(null);
+        try {
+            const query = contextDesc ? `${text}: ${contextDesc}` : text;
+            const pos = await classifyActivity(query);
+            onAddItem(text, pos.x, pos.y);
+            setVerb('');
+        } catch (err: any) {
+            logger.error('CLASSIFY', 'Failed to classify item:', err);
+            setError(err.message || `Failed to classify "${text}". AI classification error. Please try again.`);
+        } finally {
+            setIsClassifying(false);
+        }
     };
 
     const handleKeepCard = async (card: StarterCard) => {
@@ -202,6 +209,20 @@ export const ArmoryAuditPhase: React.FC<{
                 subtitle={v.armory_subtitle}
                 onBack={onBack}
             />
+
+            {/* Error Display */}
+            {error && (
+                <div className="mb-6 p-4 border border-red-800/50 bg-red-900/10 text-red-400 text-sm font-mono flex justify-between items-center animate-fade-in shadow-[0_0_10px_rgba(255,0,0,0.1)]">
+                    <div className="flex items-center gap-3">
+                        <span className="text-red-400 text-lg">⚠️</span>
+                        <div>
+                            <div className="text-xs font-mono font-bold uppercase tracking-wider">AI Service Error</div>
+                            <span className="text-[10px] opacity-80">{error}</span>
+                        </div>
+                    </div>
+                    <button onClick={() => setError(null)} className="hover:text-white px-2 py-1 text-xs">✕</button>
+                </div>
+            )}
 
             {/* View Mode Toggle */}
             <div className="flex justify-end mb-2">

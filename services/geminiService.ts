@@ -54,21 +54,18 @@ async function callGeminiClient(payload: {
     config?: any;
     systemInstruction?: string;
 }): Promise<{ text: string; candidates: any[] }> {
-    const model = ai.getGenerativeModel({ 
-        model: payload.model, 
-        systemInstruction: payload.systemInstruction 
-    });
-    
-    // Transform parameters to SDK format if needed
-    const result = await model.generateContent({
+    const result = await ai.models.generateContent({
+        model: payload.model,
         contents: payload.contents,
-        generationConfig: payload.config
+        config: {
+            ...payload.config,
+            systemInstruction: payload.systemInstruction
+        }
     });
     
-    const response = await result.response;
     return {
-        text: response.text(),
-        candidates: response.candidates || []
+        text: result.text || '',
+        candidates: result.candidates || []
     };
 }
 
@@ -385,9 +382,15 @@ export const connectLiveSession = async () => {
 
   const outputNode = outputAudioContext.createGain();
   outputNode.connect(outputAudioContext.destination);
-
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
+  const stream = await navigator.mediaDevices.getUserMedia({ 
+    audio: {
+      sampleRate: 16000,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
+    } 
+  });
   // Connect to Gemini Live
   const sessionPromise = ai.live.connect({
     model: AI_MODELS.audio.primary.id,
@@ -495,8 +498,9 @@ export const classifyActivity = async (verb: string): Promise<{ x: number, y: nu
     }, THINKING_BUDGETS.classification);
     const data = JSON.parse(response.text || "{}");
     return { x: data.x || 0, y: data.y || 0 };
-  } catch (e) {
-    return { x: 0, y: 0 };
+  } catch (e: any) {
+    console.error("[CLASSIFY] Failed:", e);
+    throw new Error(e.message || "Failed to classify activity.");
   }
 }
 
@@ -551,12 +555,13 @@ export const synthesizeToolDefinition = async (verb: string, quadrant: string): 
     3. Compress the skill into a specific Market Function using that style's vocabulary.
 
     OUTPUT FORMAT (JSON):
-    - plainName: A ${_vernacularMode === 'plain' ? 'clear, memorable' : 'bold, non-jargon'} title (Creative & Abstract is better than Descriptive).
+    - plainName: A ${_vernacularMode === 'plain' ? 'clear, descriptive title (Direct & Concrete is better than Abstract).' : 'bold, non-jargon title (Creative & Abstract is better than Descriptive).'}
     - functionStatement: A clear sentence starting with "I produce value by..."
     - promise: The specific outcome for the client.
     - antiPitch: What this is NOT. (e.g. "This is not coaching; it is ${_vernacularMode === 'plain' ? 'precision advice' : 'surgery'}.")
     
     CONSTRAINT: Do not use generic corporate jargon like "Strategic", "Optimization", "Synergy", or "Solutions".
+    ${_vernacularMode === 'plain' ? 'TONE CONSTRAINT: Use plain, blunt, and extremely clear language. Avoid sounding like a guru.' : ''}
   `;
 
   const schema: Schema = {
@@ -582,14 +587,9 @@ export const synthesizeToolDefinition = async (verb: string, quadrant: string): 
     const text = response.text;
     if (!text) throw new Error("No response");
     return JSON.parse(text) as AIAnalysisResult;
-  } catch (error) {
-    console.error("Thinking Error:", error);
-    return {
-      plainName: verb,
-      functionStatement: "Analysis failed.",
-      promise: "N/A",
-      antiPitch: "N/A"
-    };
+  } catch (error: any) {
+    console.error("[SYNTHESIZE TOOL] Thinking Error:", error);
+    throw new Error(error.message || "Failed to synthesize tool definition.");
   }
 };
 
@@ -612,31 +612,50 @@ export const synthesizeSovereignAuthority = async (candidates: ToolCandidate[]):
     }
   }
 
-  const prompt = `
-    CHIMERA PROTOCOL — Divergent Reality Synthesis
+  const roleLabel = _vernacularMode === 'plain' ? 'a strategic business synthesizer'
+    : _vernacularMode === 'industrial' ? 'a capability integration specialist'
+    : 'the Sovereign Architect executing the CHIMERA PROTOCOL';
 
-    Scenario: The user has been dropped into an alternate reality where these
-    4 skills are their ONLY survival tools. No résumé, no credentials, no 
+  const protocolName = _vernacularMode === 'plain' ? 'Capability Synergy Synthesis' 
+    : _vernacularMode === 'industrial' ? 'Structural Integration Protocol' 
+    : 'CHIMERA PROTOCOL — Divergent Reality Synthesis';
+
+  const fusionMetaphor = _vernacularMode === 'plain' ? 'feel like a natural, logical capability, not just a list of random skills'
+    : _vernacularMode === 'industrial' ? 'function as a unified structural asset, not an additive list'
+    : 'feel like alchemy, not addition';
+
+  const bondName = _vernacularMode === 'plain' ? 'CONNECTION' 
+    : _vernacularMode === 'industrial' ? 'INTEGRATION LOGIC' 
+    : 'CHIMERA BOND';
+
+  const bondDesc = _vernacularMode === 'plain' ? 'One sentence explaining WHY these 4 skills work together so well — the common thread that unites them.'
+    : _vernacularMode === 'industrial' ? 'One sentence explaining the structural necessity of combining these 4 skills — the operational leverage created by their integration.'
+    : 'One sentence explaining WHY these 4 skills fuse — the hidden molecular logic that makes them a compound, not a mixture.';
+
+  const prompt = `
+    ${protocolName}
+
+    You are ${roleLabel}.
+
+    Scenario: The user has to rely entirely on these 4 capabilities. No résumé, no credentials, no 
     network — just these raw capabilities. Your job: fuse them into ONE 
     irreplaceable market function that no single discipline could produce alone.
 
-    The 4 survival skills:
+    The 4 core capabilities:
     ${inputs}
 
-    Create a CHIMERA — a new compound identity that makes the user 
-    structurally uncopyable. The fusion should feel like alchemy, not addition.
+    Create a unified identity that makes the user structurally unique. The fusion should ${fusionMetaphor}.
 
     Output:
     1. PLAIN NAME: A sharp, memorable title for this fused function (not a list
-       of skills joined by slashes — a NEW thing).
-    2. FUNCTION STATEMENT: One sentence describing what this chimera DOES — 
+       of skills joined by slashes — a NEW thing). ${_vernacularMode === 'plain' ? 'Keep it simple and direct.' : ''}
+    2. FUNCTION STATEMENT: One sentence describing what this DOES — 
        the unique value only this specific combination creates.
     3. PROMISE: The compound outcome a client gets that they could NOT get 
        by hiring 4 separate specialists.
     4. ANTI-PITCH: One sentence explaining what this is NOT (forces 
        differentiation — reject the obvious category).
-    5. CHIMERA BOND: One sentence explaining WHY these 4 skills fuse — the 
-       hidden molecular logic that makes them a compound, not a mixture.
+    5. ${bondName}: ${bondDesc}
   `;
 
   const schema: Schema = {
@@ -1311,9 +1330,9 @@ export const generateStarterDeck = async (
     const cards = JSON.parse(response.text || "[]");
     logger.info('DECK', 'Generated', cards.length, 'starter cards for', industry);
     return cards as StarterCard[];
-  } catch (error) {
+  } catch (error: any) {
     console.error("[DECK] Failed:", error);
-    return [];
+    throw new Error(error.message || "Failed to generate starter deck.");
   }
 };
 
@@ -1381,9 +1400,9 @@ export const suggestMerge = async (
     const suggestions = JSON.parse(response.text || "[]");
     logger.info('COMPRESS', 'Generated', suggestions.length, 'merge suggestions');
     return suggestions as MergeSuggestion[];
-  } catch (error) {
+  } catch (error: any) {
     console.error("[COMPRESS] Failed:", error);
-    return [];
+    throw new Error(error.message || "Failed to generate merge suggestions.");
   }
 };
 
@@ -1556,7 +1575,7 @@ Speak directly to the ${userLabel} in second person.`;
 
     try {
         const result = await callGeminiProxy({
-            model: 'gemini-2.0-flash',
+            model: AI_MODELS.text.fallback.id,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             systemInstruction: getSystemInstruction(profile?.preferredTone),
         });
@@ -1603,7 +1622,7 @@ export async function generateInterrogationChallenge(
 ): Promise<string> {
     try {
         const result = await callGeminiProxy({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.text.primary.id,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             systemInstruction: getSystemInstruction(tone),
             thinkingBudget: 8000,
@@ -1634,7 +1653,7 @@ Respond in JSON only:
 
     try {
         const result = await callGeminiProxy({
-            model: 'gemini-2.5-flash',
+            model: AI_MODELS.text.primary.id,
             contents: [{ role: 'user', parts: [{ text: scoringPrompt }] }],
             systemInstruction: getSystemInstruction(tone),
             thinkingBudget: 4096,

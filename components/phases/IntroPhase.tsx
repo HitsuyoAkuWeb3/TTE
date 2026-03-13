@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button } from '../Visuals';
-import { useVernacular } from '../../contexts/VernacularContext';
+import { useVernacular, VernacularToggle } from '../../contexts/VernacularContext';
 
-export const IntroPhase: React.FC<{ onStart: (name: string) => void }> = ({ onStart }) => {
+export const IntroPhase: React.FC<{ xp: number; onStart: (name: string) => void }> = ({ xp, onStart }) => {
     const [name, setName] = React.useState('');
     const { v } = useVernacular();
 
@@ -20,8 +20,11 @@ export const IntroPhase: React.FC<{ onStart: (name: string) => void }> = ({ onSt
             </p>
 
             {/* Vernacular Ramp Notice — modes unlock with XP */}
-            <div className="mb-6 text-[9px] font-mono text-zinc-600 uppercase tracking-widest border border-zinc-800/50 px-4 py-2 rounded">
-                🔒 Voice modes unlock as you level up
+            <div className="mb-6 flex flex-col items-center gap-2">
+                <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest px-4 py-1">
+                    Voice modes unlock as you level up
+                </div>
+                <VernacularToggle xp={xp} />
             </div>
 
             <div className="mb-8 w-full max-w-xs">

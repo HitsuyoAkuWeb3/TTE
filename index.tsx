@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
+import { dark } from '@clerk/themes';
 import { VernacularProvider } from './contexts/VernacularContext';
 import { OrgProvider } from './contexts/OrgContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -21,7 +22,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <ClerkProvider publishableKey={CLERK_KEY}>
+      <ClerkProvider publishableKey={CLERK_KEY} appearance={{ baseTheme: dark }}>
         <OrgProvider>
           <VernacularProvider>
             <App />

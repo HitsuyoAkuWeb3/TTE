@@ -13,11 +13,11 @@ export const AI_MODELS = {
     // Text & Reasoning Models
     text: {
         primary: {
-            id: 'gemini-2.5-flash', // GA model (since June 2025)
-            timeout: 15000
+            id: 'gemini-3.1-pro-preview', // Latest Gemini 3.1 Pro (March 2026)
+            timeout: 20000
         },
         fallback: {
-            id: 'gemini-2.0-flash', // Stable, fast, cheap
+            id: 'gemini-2.5-flash', // Previous primary — stable, battle-tested
             timeout: 30000
         },
     },

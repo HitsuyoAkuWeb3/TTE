@@ -9,7 +9,8 @@ export interface DailyEntry {
     offersSent: number;
     revenue: number;
     note: string;
-    mood: 'focused' | 'scattered' | 'blocked' | 'flow';
+    mood: 'destroyed' | 'stalled' | 'focused' | 'flow' | 'sovereign';
+    completedPlanDays?: number[];
 }
 
 interface MomiyoseViewProps {

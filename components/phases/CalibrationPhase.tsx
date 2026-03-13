@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { OperatorProfile } from '../../types';
 import { Button } from '../Visuals';
 import { useVernacular } from '../../contexts/VernacularContext';
+import { ActiveWardenTextarea } from '../ToneWarden';
 
 interface CalibrationPhaseProps {
     initialProfile?: OperatorProfile | null;
@@ -56,7 +57,7 @@ export const CalibrationPhase: React.FC<CalibrationPhaseProps> = ({ initialProfi
                 </div>
                 <div>
                     <label htmlFor="calibration-goal" className="block text-[10px] uppercase text-zinc-500 mb-2 font-mono tracking-widest">{v.label_goal}</label>
-                    <textarea
+                    <ActiveWardenTextarea
                         id="calibration-goal"
                         value={profile.strategicGoal}
                         onChange={(e) => setProfile(p => ({ ...p, strategicGoal: e.target.value }))}
